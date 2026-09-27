@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/Login.dto';
 import { RegisterDto } from './dto/Register.dto';
 import { UserService } from 'src/user/user.service';
+import { compare } from 'bcrypt';
+import { LogoutDto } from './dto/Logout.dto';
 
 @Injectable()
 export class AuthService {
@@ -11,7 +13,45 @@ export class AuthService {
     private readonly userService: UserService,
   ) {}
 
-  async login(body: LoginDto) {}
+  async login(body: LoginDto) {
+    const data = await this.userService.findByUsername(body.username);
+
+    if (!data) {
+      throw new UnauthorizedException('Usuario o contraseña incorrectos');
+    }
+
+    const passwordCorrect = await compare(body.password, data.password);
+    if (!passwordCorrect) {
+      throw new UnauthorizedException('Usuario o contraseña incorrectos');
+    }
+
+    const access_token = this.jwtService.sign(
+      {
+        sub: data._id.toString(),
+        username: data.username,
+      },
+      {
+        expiresIn: '15m',
+      },
+    );
+
+    const refresh_token = this.jwtService.sign(
+      {
+        sub: data._id.toString(),
+      },
+      {
+        expiresIn: '7d',
+        secret: process.env.JWT_REFRESH_SECRET,
+      },
+    );
+
+    this.userService.updateRefresToken({
+      username: data.username,
+      refresh_token,
+    });
+
+    return { access_token, refresh_token };
+  }
 
   async register(body: RegisterDto) {
     const user = await this.userService.findByUsername(body.username);
@@ -45,9 +85,27 @@ export class AuthService {
       },
       {
         secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: '7d',
       },
     );
 
+    await this.userService.updateRefresToken({
+      username: body.username,
+      refresh_token,
+    });
+
     return { access_token, refresh_token };
+  }
+
+  async logout(body: LogoutDto) {
+    try {
+      const payload = this.jwtService.verify(body.refresh_token, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+
+      const userId = payload.sub;
+    } catch {
+      throw new UnauthorizedException('Token invalido o expirado');
+    }
   }
 }

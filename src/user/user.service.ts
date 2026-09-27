@@ -1,26 +1,44 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from './schemas/user.schema';
+import { Model } from 'mongoose';
+import { CreateUserDto } from './dto/createUser.dto';
+import { createInventory } from './schemas/inventory.schema';
+import bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+  ) {}
+
+  async findByUsername(username: string) {
+    try {
+      return await this.userModel.findOne({ username }).exec();
+    } catch (error) {
+      throw new Error(`${error}`);
+    }
   }
 
-  findAll() {
-    return `This action returns all user`;
-  }
+  async createUser(body: CreateUserDto) {
+    try {
+      const saltRounds = 10;
+      const password = body.password;
+      const hash = await bcrypt.hash(password, saltRounds);
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
+      return await this.userModel.create({
+        username: body.username,
+        password: hash,
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+        inventory: {
+          width: 7,
+          height: 5,
+          slots: createInventory(7, 5),
+        },
+      });
+    } catch (error) {
+      throw new Error(`error: ${error}`);
+    }
   }
 }

@@ -22,3 +22,10 @@ export class Inventory {
   slots!: InventorySlot[];
 }
 export const InventorySchema = SchemaFactory.createForClass(Inventory);
+
+export const createInventory = (width: number, height: number) => {
+  return Array.from({ length: width * height }, () => ({
+    itemId: null,
+    quantity: 0,
+  }));
+};

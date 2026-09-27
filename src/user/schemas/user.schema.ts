@@ -22,6 +22,9 @@ export class User {
   @Prop({ required: true })
   password!: string;
 
+  @Prop()
+  refresh_token!: string;
+
   @Prop({ type: PositionSchema, required: true })
   position!: Position;
 
@@ -37,3 +40,4 @@ export class User {
   @Prop({ type: [String], default: [] })
   defatedNeighbors!: string[];
 }
+export const UserSchema = SchemaFactory.createForClass(User);

@@ -4,7 +4,7 @@ import { User } from './schemas/user.schema';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
 import { createInventory } from './schemas/inventory.schema';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -35,6 +35,11 @@ export class UserService {
           width: 7,
           height: 5,
           slots: createInventory(7, 5),
+        },
+
+        position: {
+          x: 0,
+          y: 0,
         },
       });
     } catch (error) {

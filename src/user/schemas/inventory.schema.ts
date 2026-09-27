@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema({ _id: false })
 export class InventorySlot {
-  @Prop({ default: null })
+  @Prop({ type: String, default: null })
   itemId!: string | null;
 
   @Prop({ default: 0, min: 0 })

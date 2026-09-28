@@ -1,98 +1,1266 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CorralWars API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST del proyecto **CorralWars**, desarrollada con NestJS, TypeScript, MongoDB y Mongoose.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+La API está diseñada para funcionar como backend de un videojuego desarrollado en Godot, encargándose de la autenticación, gestión de usuarios y persistencia de los datos del jugador.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Descripción
 
-## Project setup
+CorralWars utiliza una arquitectura cliente-servidor:
 
-```bash
-$ npm install
+```text
+┌─────────────┐
+│    Godot    │
+│   Cliente   │
+└──────┬──────┘
+       │
+       │ HTTP / JSON
+       ▼
+┌─────────────┐
+│   NestJS    │
+│     API     │
+└──────┬──────┘
+       │
+       │ Mongoose
+       ▼
+┌─────────────┐
+│   MongoDB   │
+│  Base datos │
+└─────────────┘
 ```
 
-## Compile and run the project
+### Tecnologías
 
-```bash
-# development
-$ npm run start
+- NestJS
+- TypeScript
+- MongoDB
+- Mongoose
+- JWT
+- bcrypt
+- Swagger / OpenAPI
+- class-validator
 
-# watch mode
-$ npm run start:dev
+---
 
-# production mode
-$ npm run start:prod
+# Arquitectura
+
+El proyecto está dividido en los siguientes módulos:
+
+```text
+src/
+├── auth/
+│   ├── dto/
+│   ├── guards/
+│   ├── auth.controller.ts
+│   ├── auth.module.ts
+│   └── auth.service.ts
+│
+├── user/
+│   ├── dto/
+│   ├── schemas/
+│   ├── user.controller.ts
+│   ├── user.module.ts
+│   └── user.service.ts
+│
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
 ```
 
-## Run tests
+## AuthModule
 
-```bash
-# unit tests
-$ npm run test
+Se encarga de la autenticación.
 
-# e2e tests
-$ npm run test:e2e
+Responsabilidades:
 
-# test coverage
-$ npm run test:cov
+- Registro de usuarios.
+- Inicio de sesión.
+- Generación de Access Tokens.
+- Generación de Refresh Tokens.
+- Validación de Refresh Tokens.
+- Cierre de sesión.
+
+El módulo utiliza `UserService` para acceder a los datos de los usuarios.
+
+```text
+AuthController
+      │
+      ▼
+ AuthService
+      │
+      ▼
+ UserService
+      │
+      ▼
+   MongoDB
 ```
 
-## Deployment
+## UserModule
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Se encarga de la gestión de los usuarios y del acceso a MongoDB mediante Mongoose.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Responsabilidades actuales:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+- Buscar usuarios.
+- Crear usuarios.
+- Actualizar Refresh Tokens.
+- Eliminar/invalidar Refresh Tokens.
+
+`UserService` es el encargado de comunicarse con el modelo de Mongoose.
+
+```text
+UserController
+      │
+      ▼
+ UserService
+      │
+      ▼
+ UserModel
+      │
+      ▼
+   MongoDB
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+# Configuración
 
-Check out a few resources that may come in handy when working with NestJS:
+## Variables de entorno
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+El proyecto utiliza variables de entorno para configurar el servidor, la conexión con MongoDB y las claves utilizadas por JWT.
 
-## Support
+Crear un archivo `.env` en la raíz del proyecto:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```env
+PORT=3500
 
-## Stay in touch
+MONGODB_URI=<tu_uri_de_mongodb>
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+JWT_SECRET=<tu_access_token_secret>
 
-## License
+JWT_REFRESH_SECRET=<tu_refresh_token_secret>
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+NODE_ENV=DEV
+```
+
+| Variable             | Descripción                                  |
+| -------------------- | -------------------------------------------- |
+| `PORT`               | Puerto donde se ejecutará la API             |
+| `MONGODB_URI`        | URI de conexión a MongoDB                    |
+| `JWT_SECRET`         | Secreto utilizado para firmar Access Tokens  |
+| `JWT_REFRESH_SECRET` | Secreto utilizado para firmar Refresh Tokens |
+| `NODE_ENV`           | Determina el entorno de ejecución            |
+
+> El archivo `.env` contiene información sensible y no debe subirse al repositorio.
+
+---
+
+# Instalación
+
+## Clonar el repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO>
+```
+
+## Entrar al proyecto
+
+```bash
+cd CorralWars
+```
+
+## Instalar las dependencias
+
+```bash
+npm install
+```
+
+Después de instalar las dependencias, configura las variables de entorno en el archivo `.env`.
+
+---
+
+# Ejecución
+
+## Desarrollo
+
+Para iniciar el servidor en modo desarrollo:
+
+```bash
+npm run start:dev
+```
+
+La API estará disponible en:
+
+```text
+http://localhost:3500
+```
+
+---
+
+# Swagger
+
+Durante el desarrollo, Swagger se habilita cuando la variable:
+
+```env
+NODE_ENV=DEV
+```
+
+está configurada.
+
+La documentación estará disponible en:
+
+```text
+http://localhost:3500/api
+```
+
+Swagger permite visualizar los endpoints disponibles y probar las solicitudes directamente desde la interfaz.
+
+La especificación OpenAPI también está disponible en:
+
+```text
+http://localhost:3500/api-json
+```
+
+---
+
+# API
+
+La API está organizada mediante diferentes módulos.
+
+Actualmente cuenta con los siguientes endpoints:
+
+| Método | Endpoint                  | Descripción          |
+| ------ | ------------------------- | -------------------- |
+| `GET`  | `/`                       | Endpoint de prueba   |
+| `POST` | `/auth/register`          | Registrar una cuenta |
+| `POST` | `/auth/login`             | Iniciar sesión       |
+| `POST` | `/auth/Logout`            | Cerrar sesión        |
+| `GET`  | `/user/findOne/:username` | Buscar un usuario    |
+
+---
+
+# Auth
+
+El módulo `AuthModule` contiene la lógica relacionada con la autenticación de los jugadores.
+
+Los endpoints utilizan el prefijo:
+
+```text
+/auth
+```
+
+---
+
+## Registrar una cuenta
+
+```http
+POST /auth/register
+```
+
+Registra un nuevo usuario y genera sus tokens de autenticación.
+
+### Request
+
+```json
+{
+  "username": "Yair17",
+  "password": "1234567890",
+  "confirm_password": "1234567890"
+}
+```
+
+### Parámetros
+
+| Campo              | Tipo     | Requerido | Descripción                   |
+| ------------------ | -------- | --------- | ----------------------------- |
+| `username`         | `string` | Sí        | Nombre de usuario             |
+| `password`         | `string` | Sí        | Contraseña                    |
+| `confirm_password` | `string` | Sí        | Confirmación de la contraseña |
+
+### Restricciones
+
+- `username` debe tener como mínimo 5 caracteres.
+- `password` debe tener como mínimo 10 caracteres.
+- `confirm_password` debe coincidir con `password`.
+
+### Respuesta
+
+```json
+{
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ..."
+}
+```
+
+El `access_token` se utilizará para realizar solicitudes autenticadas.
+
+El `refresh_token` se utilizará para mantener la sesión y renovar el Access Token cuando sea necesario.
+
+### Errores
+
+#### 401 Unauthorized
+
+Puede ocurrir cuando:
+
+- El nombre de usuario ya está registrado.
+- Las contraseñas no coinciden.
+
+---
+
+# Iniciar sesión
+
+```http
+POST /auth/login
+```
+
+Autentica un usuario existente.
+
+### Request
+
+```json
+{
+  "username": "Yair17",
+  "password": "1234567890"
+}
+```
+
+### Respuesta
+
+```json
+{
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ..."
+}
+```
+
+### Proceso interno
+
+Cuando se recibe una solicitud de login:
+
+```text
+Cliente
+   │
+   │ username + password
+   ▼
+AuthController
+   │
+   ▼
+AuthService
+   │
+   ▼
+UserService
+   │
+   ▼
+MongoDB
+```
+
+El servidor:
+
+1. Busca el usuario mediante su nombre.
+2. Comprueba que el usuario exista.
+3. Compara la contraseña recibida con el hash almacenado.
+4. Genera un Access Token.
+5. Genera un Refresh Token.
+6. Almacena el Refresh Token hasheado.
+7. Devuelve ambos tokens al cliente.
+
+La contraseña se verifica mediante `bcrypt`.
+
+### Errores
+
+```http
+401 Unauthorized
+```
+
+Cuando las credenciales no son correctas.
+
+La API utiliza el mismo mensaje tanto si el usuario no existe como si la contraseña es incorrecta:
+
+```text
+Usuario o contraseña incorrectos
+```
+
+---
+
+# Cerrar sesión
+
+```http
+POST /auth/Logout
+```
+
+Cierra la sesión del usuario utilizando su Refresh Token.
+
+### Request
+
+```json
+{
+  "refresh_token": "eyJ..."
+}
+```
+
+### Proceso
+
+El servidor:
+
+1. Recibe el Refresh Token.
+2. Verifica el token utilizando `JWT_REFRESH_SECRET`.
+3. Obtiene el ID del usuario desde `payload.sub`.
+4. Busca la cuenta correspondiente.
+5. Invalida el Refresh Token almacenado.
+
+### Error
+
+```http
+401 Unauthorized
+```
+
+Puede ocurrir si el Refresh Token es inválido o está expirado.
+
+---
+
+# User
+
+El módulo `UserModule` se encarga de gestionar los usuarios y sus datos almacenados en MongoDB.
+
+Los endpoints utilizan el prefijo:
+
+```text
+/user
+```
+
+---
+
+## Buscar usuario
+
+```http
+GET /user/findOne/:username
+```
+
+Busca un usuario utilizando su nombre de usuario.
+
+### Ejemplo
+
+```http
+GET /user/findOne/Yair17
+```
+
+### Parámetros
+
+| Parámetro  | Tipo     | Descripción                            |
+| ---------- | -------- | -------------------------------------- |
+| `username` | `string` | Nombre del usuario que se desea buscar |
+
+### Ejemplo de solicitud
+
+```http
+GET http://localhost:3500/user/findOne/Yair17
+```
+
+El `UserController` recibe el nombre de usuario y delega la búsqueda a:
+
+```text
+UserController
+      │
+      ▼
+ UserService
+      │
+      ▼
+ UserModel
+      │
+      ▼
+  MongoDB
+```
+
+---
+
+# Autenticación
+
+CorralWars utiliza **JSON Web Tokens (JWT)** para manejar las sesiones.
+
+Se utilizan dos tipos de tokens:
+
+```text
+Access Token
+Refresh Token
+```
+
+Cada uno tiene una función y duración diferente.
+
+---
+
+## Access Token
+
+El Access Token se utiliza para autenticar las solicitudes que requieren una sesión activa.
+
+Tiene una duración de:
+
+```text
+15 minutos
+```
+
+Contiene información básica del usuario:
+
+```json
+{
+  "sub": "ID_DEL_USUARIO",
+  "username": "Yair17"
+}
+```
+
+Para realizar una solicitud autenticada, el cliente debe enviar el token mediante el header:
+
+```http
+Access-Token: eyJ...
+```
+
+---
+
+## AuthGuard
+
+Las rutas que necesiten autenticación pueden utilizar el `AuthGuard`.
+
+El guard obtiene el token desde:
+
+```http
+Access-Token
+```
+
+Después lo verifica utilizando `JwtService`.
+
+Si el token es válido:
+
+```text
+request.user = payload
+```
+
+y la solicitud puede continuar.
+
+Si el token no existe:
+
+```http
+401 Unauthorized
+```
+
+con el mensaje:
+
+```text
+Access token requerido
+```
+
+Si el token es inválido o expiró:
+
+```http
+401 Unauthorized
+```
+
+con el mensaje:
+
+```text
+Access token inválido
+```
+
+---
+
+# Refresh Token
+
+El Refresh Token se utiliza para mantener la sesión del usuario cuando el Access Token ha expirado.
+
+Tiene una duración de:
+
+```text
+7 días
+```
+
+A diferencia del Access Token, utiliza una clave secreta independiente:
+
+```env
+JWT_REFRESH_SECRET=<tu_refresh_jwt_secret>
+```
+
+Su payload contiene el ID del usuario:
+
+```json
+{
+  "sub": "ID_DEL_USUARIO"
+}
+```
+
+---
+
+# Almacenamiento del Refresh Token
+
+El Refresh Token no se almacena directamente en MongoDB.
+
+Antes de guardarlo, se genera un hash utilizando `bcrypt`.
+
+```text
+Refresh Token
+      │
+      ▼
+bcrypt.hash()
+      │
+      ▼
+    Hash
+      │
+      ▼
+  MongoDB
+```
+
+De esta manera, MongoDB no necesita almacenar el token original.
+
+---
+
+# Flujo de autenticación
+
+## Registro
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant A as AuthService
+    participant U as UserService
+    participant M as Mongoose
+    participant DB as MongoDB
+
+    G->>C: POST /auth/register
+    C->>A: register(RegisterDto)
+
+    A->>U: findByUsername()
+    U->>M: findOne()
+    M->>DB: Buscar usuario
+    DB-->>M: Resultado
+    M-->>U: Resultado
+    U-->>A: Usuario
+
+    A->>U: createUser()
+    U->>M: create()
+    M->>DB: Crear usuario
+
+    A->>A: Generar Access Token
+    A->>A: Generar Refresh Token
+
+    A->>U: updateRefreshToken()
+    U->>M: updateOne()
+    M->>DB: Guardar hash
+
+    A-->>C: Tokens
+    C-->>G: access_token + refresh_token
+```
+
+---
+
+## Login
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant A as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/login
+    C->>A: login(LoginDto)
+
+    A->>U: findByUsername()
+    U->>DB: Buscar usuario
+    DB-->>U: Usuario
+    U-->>A: Usuario
+
+    A->>A: bcrypt.compare()
+
+    A->>A: Generar Access Token
+    A->>A: Generar Refresh Token
+
+    A->>U: updateRefreshToken()
+    U->>DB: Guardar hash
+
+    A-->>C: Tokens
+    C-->>G: Tokens
+```
+
+---
+
+## Logout
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant A as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/Logout
+    C->>A: logout(LogoutDto)
+
+    A->>A: Verificar Refresh Token
+    A->>A: Obtener payload.sub
+
+    A->>U: deleteRefreshToken(userId)
+    U->>DB: Invalidar Refresh Token
+
+    DB-->>U: Resultado
+    U-->>A: Resultado
+    A-->>C: Respuesta
+    C-->>G: Respuesta
+```
+
+---
+
+# Flujo de renovación de sesión
+
+El cliente puede utilizar el Refresh Token cuando el Access Token haya expirado.
+
+El flujo esperado es:
+
+```text
+Cliente
+   │
+   │ Request con Access Token
+   ▼
+NestJS
+   │
+   ├── Token válido ─────────► Procesar solicitud
+   │
+   └── Token inválido
+             │
+             ▼
+            401
+             │
+             ▼
+      Enviar Refresh Token
+             │
+             ▼
+      Verificar Refresh Token
+             │
+        ┌────┴────┐
+        │         │
+      válido    inválido
+        │         │
+        ▼         ▼
+Nuevo Access    Volver a
+Token           iniciar sesión
+        │
+        ▼
+Reintentar solicitud
+```
+
+El cliente debe guardar ambos tokens y utilizarlos según corresponda.
+
+---
+
+# Base de datos
+
+La API utiliza MongoDB como base de datos no relacional.
+
+Mongoose se utiliza como ODM para trabajar con MongoDB desde NestJS.
+
+La conexión se establece mediante:
+
+```ts
+MongooseModule.forRoot(process.env.MONGODB_URI);
+```
+
+Los modelos específicos se registran dentro de sus módulos mediante:
+
+```ts
+MongooseModule.forFeature();
+```
+
+---
+
+# Modelo User
+
+Actualmente el usuario contiene los siguientes campos:
+
+```text
+User
+├── _id
+├── username
+├── password
+├── refresh_token
+├── position
+├── inventory
+├── level
+├── experience
+└── defatedNeighbors
+```
+
+| Campo              | Tipo        | Descripción                        |
+| ------------------ | ----------- | ---------------------------------- |
+| `_id`              | `ObjectId`  | Identificador generado por MongoDB |
+| `username`         | `string`    | Nombre del usuario                 |
+| `password`         | `string`    | Hash de la contraseña              |
+| `refresh_token`    | `string`    | Hash del Refresh Token             |
+| `position`         | `Position`  | Posición del jugador               |
+| `inventory`        | `Inventory` | Inventario del jugador             |
+| `level`            | `number`    | Nivel actual                       |
+| `experience`       | `number`    | Experiencia acumulada              |
+| `defatedNeighbors` | `string[]`  | Vecinos derrotados                 |
+
+---
+
+# Position
+
+`Position` es un subdocumento utilizado para almacenar la posición del jugador.
+
+```json
+{
+  "x": 0,
+  "y": 0
+}
+```
+
+Campos:
+
+| Campo | Tipo     |
+| ----- | -------- |
+| `x`   | `number` |
+| `y`   | `number` |
+
+Los valores iniciales son:
+
+```text
+x = 0
+y = 0
+```
+
+`Position` es un subdocumento de MongoDB sin `_id` propio.
+
+---
+
+# Inventory
+
+El inventario utiliza una estructura de slots.
+
+Actualmente se crea con:
+
+```text
+width = 7
+height = 5
+```
+
+Por lo tanto:
+
+```text
+7 × 5 = 35 slots
+```
+
+Cada slot contiene:
+
+```json
+{
+  "itemId": null,
+  "quantity": 0
+}
+```
+
+---
+
+# InventorySlot
+
+| Campo      | Tipo             | Descripción              |
+| ---------- | ---------------- | ------------------------ |
+| `itemId`   | `string \| null` | ID del objeto almacenado |
+| `quantity` | `number`         | Cantidad del objeto      |
+
+`quantity` no puede tener un valor negativo.
+
+---
+
+# Creación de usuarios
+
+Cuando se crea un usuario, el backend genera automáticamente algunos datos iniciales.
+
+```text
+username
+password
+position
+inventory
+refresh_token
+```
+
+Los valores iniciales principales son:
+
+```text
+position:
+    x = 0
+    y = 0
+
+inventory:
+    width = 7
+    height = 5
+    slots = 35
+
+level:
+    1
+
+experience:
+    0
+```
+
+La contraseña se almacena mediante un hash generado con bcrypt.
+
+---
+
+# DTOs
+
+Los DTOs se utilizan para definir y validar los datos recibidos por la API.
+
+Actualmente existen DTOs relacionados con autenticación y usuarios.
+
+## Auth DTOs
+
+```text
+auth/dto/
+├── Login.dto.ts
+├── Logout.dto.ts
+└── Register.dto.ts
+```
+
+## User DTOs
+
+```text
+user/dto/
+├── createUser.dto.ts
+├── refreshToken.dto.ts
+└── update-user.dto.ts
+```
+
+---
+
+# Responsabilidad de las capas
+
+La aplicación mantiene separadas las responsabilidades entre controllers, services y modelos.
+
+```text
+┌──────────────┐
+│  Controller  │
+│              │
+│ HTTP / JSON  │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Service    │
+│              │
+│   Lógica     │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Mongoose   │
+│    Model     │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   MongoDB    │
+└──────────────┘
+```
+
+## Controller
+
+Se encarga de:
+
+- Recibir solicitudes HTTP.
+- Obtener parámetros y body.
+- Ejecutar el servicio correspondiente.
+- Devolver la respuesta.
+
+## Service
+
+Se encarga de:
+
+- Ejecutar la lógica de la aplicación.
+- Validar información relacionada con el proceso.
+- Coordinar operaciones entre diferentes componentes.
+- Trabajar con los modelos mediante Mongoose.
+
+## Model / Schema
+
+Define la estructura de los documentos almacenados en MongoDB.
+
+---
+
+# Dependencias entre módulos
+
+La relación principal entre los módulos es:
+
+```text
+AppModule
+├── UserModule
+└── AuthModule
+       │
+       └── UserModule
+```
+
+`UserModule` exporta `UserService`, permitiendo que `AuthModule` pueda utilizarlo.
+
+La comunicación queda:
+
+```text
+AuthService
+     │
+     ▼
+UserService
+     │
+     ▼
+UserModel
+     │
+     ▼
+MongoDB
+```
+
+---
+
+# AppModule
+
+`AppModule` es el módulo raíz de la aplicación.
+
+Se encarga de cargar:
+
+- `ConfigModule`
+- `MongooseModule`
+- `UserModule`
+- `AuthModule`
+
+La conexión a MongoDB se establece mediante:
+
+```ts
+MongooseModule.forRoot(process.env.MONGODB_URI);
+```
+
+---
+
+# ConfigModule
+
+Las variables de entorno son cargadas mediante:
+
+```ts
+ConfigModule.forRoot({
+  isGlobal: true,
+});
+```
+
+Al utilizar `isGlobal: true`, el `ConfigModule` puede utilizarse desde otros módulos sin necesidad de importarlo repetidamente.
+
+---
+
+# JWT Module
+
+`AuthModule` registra `JwtModule` utilizando `registerAsync()` y `ConfigService`.
+
+Esto permite obtener el secreto desde las variables de entorno:
+
+```env
+JWT_SECRET=<tu_access_token_secret>
+```
+
+Los Refresh Tokens utilizan:
+
+```env
+JWT_REFRESH_SECRET=<tu_refresh_token_secret>
+```
+
+---
+
+# Comunicación con Godot
+
+La API está diseñada para que el cliente del videojuego pueda comunicarse mediante HTTP.
+
+Por ejemplo:
+
+```text
+Godot
+   │
+   │ HTTP Request
+   ▼
+CorralWars API
+   │
+   ▼
+MongoDB
+```
+
+Una solicitud autenticada puede tener la siguiente estructura:
+
+```http
+GET /ruta/protegida
+Content-Type: application/json
+Access-Token: eyJ...
+```
+
+El cliente puede almacenar:
+
+```text
+access_token
+refresh_token
+```
+
+y utilizarlos durante la sesión.
+
+---
+
+# Seguridad
+
+## Contraseñas
+
+Las contraseñas no se almacenan en texto plano.
+
+Se utiliza:
+
+```text
+bcrypt.hash()
+```
+
+para generar el hash.
+
+Durante el login se utiliza:
+
+```text
+bcrypt.compare()
+```
+
+para comprobar la contraseña.
+
+---
+
+## JWT Secrets
+
+Los secretos utilizados por JWT deben mantenerse fuera del código fuente.
+
+```env
+JWT_SECRET=<secret>
+JWT_REFRESH_SECRET=<secret>
+```
+
+El archivo `.env` no debe subirse al repositorio.
+
+---
+
+## Datos sensibles
+
+Nunca se deben incluir en Git:
+
+```text
+.env
+```
+
+ni:
+
+- Claves JWT.
+- Contraseñas.
+- Credenciales de MongoDB.
+- Tokens.
+- Cualquier otra información sensible.
+
+---
+
+# Estructura completa
+
+```text
+src/
+│
+├── auth/
+│   ├── dto/
+│   │   ├── Login.dto.ts
+│   │   ├── Logout.dto.ts
+│   │   └── Register.dto.ts
+│   │
+│   ├── guards/
+│   │   └── access_token_auth.guard.ts
+│   │
+│   ├── auth.controller.ts
+│   ├── auth.module.ts
+│   └── auth.service.ts
+│
+├── user/
+│   ├── dto/
+│   │   ├── createUser.dto.ts
+│   │   ├── refreshToken.dto.ts
+│   │   └── update-user.dto.ts
+│   │
+│   ├── schemas/
+│   │   ├── inventory.schema.ts
+│   │   └── user.schema.ts
+│   │
+│   ├── user.controller.ts
+│   ├── user.module.ts
+│   └── user.service.ts
+│
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
+```
+
+---
+
+# Estado actual
+
+Actualmente la API cuenta con:
+
+- Conexión a MongoDB.
+- Mongoose.
+- Registro de usuarios.
+- Login.
+- Logout.
+- Access Tokens.
+- Refresh Tokens.
+- Hashing de contraseñas con bcrypt.
+- Hashing de Refresh Tokens.
+- AuthGuard para Access Tokens.
+- Gestión de usuarios.
+- Inventario inicial.
+- Posición inicial del jugador.
+- Sistema de nivel y experiencia.
+- Swagger / OpenAPI.
+- Validación mediante DTOs.
+
+La comunicación principal está preparada para:
+
+```text
+Godot → HTTP → NestJS → Mongoose → MongoDB
+```
+
+---
+
+# Desarrollo futuro
+
+La arquitectura permite agregar nuevos módulos sin mezclar sus responsabilidades con la autenticación.
+
+Por ejemplo:
+
+```text
+src/
+├── auth/
+├── user/
+├── inventory/
+├── items/
+├── neighbors/
+├── pets/
+├── quests/
+└── ...
+```
+
+Cada módulo puede contener sus propios:
+
+```text
+Controller
+Service
+DTOs
+Schemas
+```
+
+Esto permite ampliar la API a medida que se agreguen nuevas funcionalidades al videojuego.
+
+---
+
+# Licencia
+
+Este proyecto pertenece a **CorralWars**.

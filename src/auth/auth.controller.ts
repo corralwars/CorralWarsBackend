@@ -16,12 +16,12 @@ export class AuthController {
     description: 'Inicia sesión en CorralWars',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'Inicio de sesión hecho',
     schema: {
       example: {
         access_token: 'lo que sea',
-        refresh_tolen: 'lo que sea',
+        refresh_token: 'lo que sea',
       },
     },
   })
@@ -39,11 +39,11 @@ export class AuthController {
     description: 'registrar cuenta nueva en CorralWars',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'registro correcto',
     example: {
       access_token: 'lo que sea',
-      refresh_tolen: 'lo que sea',
+      refresh_token: 'lo que sea',
     },
   })
   @ApiResponse({
@@ -59,7 +59,7 @@ export class AuthController {
     description: 'Cerrar sesión en CorralWars',
   })
   @ApiResponse({
-    status: 201,
+    status: 200,
     description: 'sesión cerrada',
   })
   @ApiResponse({

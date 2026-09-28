@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model, Types } from 'mongoose';
@@ -71,7 +71,11 @@ export class UserService {
           refresh_token: null,
         },
       );
-      console.log(result, id, new Types.ObjectId(id));
+      if (!result) {
+        throw new UnauthorizedException(
+          'la cuenta no tiene una sesión iniciada',
+        );
+      }
       return result;
     } catch (error) {
       throw new Error(`${error}`);

@@ -10,8 +10,4 @@ export class CreateUserDto {
   @MinLength(10)
   @IsNotEmpty()
   password!: string;
-
-  @IsString()
-  @IsEmpty()
-  refresh_token?: string;
 }

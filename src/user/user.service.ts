@@ -64,21 +64,15 @@ export class UserService {
   }
 
   async deleteRefreshToken(id: string) {
-    try {
-      const result = await this.userModel.updateOne(
-        { _id: id },
-        {
-          refresh_token: null,
-        },
-      );
-      if (!result) {
-        throw new UnauthorizedException(
-          'la cuenta no tiene una sesión iniciada',
-        );
-      }
-      return result;
-    } catch (error) {
-      throw new Error(`${error}`);
+    const result = await this.userModel.updateOne(
+      { _id: id },
+      {
+        refresh_token: null,
+      },
+    );
+    if (result.matchedCount == 0) {
+      throw new UnauthorizedException('la cuenta no tiene una sesión iniciada');
     }
+    return result;
   }
 }

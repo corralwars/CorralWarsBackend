@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from './schemas/user.schema';
-import { Model } from 'mongoose';
+import { User, UserDocument } from './schemas/user.schema';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
 import { createInventory } from './schemas/inventory.schema';
 import * as bcrypt from 'bcrypt';
@@ -11,7 +11,7 @@ import { RefreshTokenDto } from './dto/refreshToken.dto';
 export class UserService {
   constructor(
     @InjectModel(User.name)
-    private readonly userModel: Model<User>,
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   async findByUsername(username: string) {
@@ -50,17 +50,29 @@ export class UserService {
 
   async updateRefresToken(body: RefreshTokenDto) {
     try {
-      let refresh_token: string | null = null;
-      if (body.refresh_token) {
-        refresh_token = await bcrypt.hash(body.refresh_token, 10);
-      }
+      const hash = await bcrypt.hash(body.refresh_token, 10);
 
       return await this.userModel.updateOne(
         { username: body.username },
         {
-          refresh_token,
+          refresh_token: hash,
         },
       );
+    } catch (error) {
+      throw new Error(`${error}`);
+    }
+  }
+
+  async deleteRefreshToken(id: string) {
+    try {
+      const result = await this.userModel.updateOne(
+        { _id: id },
+        {
+          refresh_token: null,
+        },
+      );
+      console.log(result, id, new Types.ObjectId(id));
+      return result;
     } catch (error) {
       throw new Error(`${error}`);
     }

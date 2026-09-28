@@ -71,7 +71,7 @@ export class AuthService {
 
     const access_token = this.jwtService.sign(
       {
-        sub: registerUser._id,
+        sub: registerUser._id.toString(),
         username: registerUser.username,
       },
       {
@@ -81,7 +81,7 @@ export class AuthService {
 
     const refresh_token = this.jwtService.sign(
       {
-        sub: registerUser._id,
+        sub: registerUser._id.toString(),
       },
       {
         secret: process.env.JWT_REFRESH_SECRET,
@@ -104,6 +104,7 @@ export class AuthService {
       });
 
       const userId = payload.sub;
+      return await this.userService.deleteRefreshToken(userId);
     } catch {
       throw new UnauthorizedException('Token invalido o expirado');
     }

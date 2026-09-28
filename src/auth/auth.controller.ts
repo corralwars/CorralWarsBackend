@@ -19,5 +19,7 @@ export class AuthController {
   }
 
   @Post('Logout')
-  async logout(@Body() body: LogoutDto) {}
+  async logout(@Body() body: LogoutDto) {
+    return await this.authService.logout(body);
+  }
 }

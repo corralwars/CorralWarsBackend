@@ -7,5 +7,6 @@ export class RefreshTokenDto {
   username!: string;
 
   @IsString()
-  refresh_token?: string;
+  @IsNotEmpty()
+  refresh_token!: string;
 }

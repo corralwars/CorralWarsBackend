@@ -14,7 +14,7 @@ export class Position {
 }
 const PositionSchema = SchemaFactory.createForClass(Position);
 
-@Schema()
+@Schema({ _id: true })
 export class User {
   @Prop({ required: true, unique: true, minLength: 5 })
   username!: string;

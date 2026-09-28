@@ -1261,6 +1261,10 @@ Esto permite ampliar la API a medida que se agreguen nuevas funcionalidades al v
 
 ---
 
+## Base de Datos
+
+![Base de datos](./docs/database.md)
+
 # Licencia
 
 Este proyecto pertenece a **CorralWars**.

@@ -6,7 +6,7 @@ La API está diseñada para funcionar como backend de un videojuego desarrollado
 
 ---
 
-## Descripción
+# Descripción
 
 CorralWars utiliza una arquitectura cliente-servidor:
 
@@ -31,98 +31,9 @@ CorralWars utiliza una arquitectura cliente-servidor:
 └─────────────┘
 ```
 
-### Tecnologías
+Para consultar la estructura completa de módulos, responsabilidades y dependencias:
 
-- NestJS
-- TypeScript
-- MongoDB
-- Mongoose
-- JWT
-- bcrypt
-- Swagger / OpenAPI
-- class-validator
-
----
-
-# Arquitectura
-
-El proyecto está dividido en los siguientes módulos:
-
-```text
-src/
-├── auth/
-│   ├── dto/
-│   ├── guards/
-│   ├── auth.controller.ts
-│   ├── auth.module.ts
-│   └── auth.service.ts
-│
-├── user/
-│   ├── dto/
-│   ├── schemas/
-│   ├── user.controller.ts
-│   ├── user.module.ts
-│   └── user.service.ts
-│
-├── app.controller.ts
-├── app.module.ts
-├── app.service.ts
-└── main.ts
-```
-
-## AuthModule
-
-Se encarga de la autenticación.
-
-Responsabilidades:
-
-- Registro de usuarios.
-- Inicio de sesión.
-- Generación de Access Tokens.
-- Generación de Refresh Tokens.
-- Validación de Refresh Tokens.
-- Cierre de sesión.
-
-El módulo utiliza `UserService` para acceder a los datos de los usuarios.
-
-```text
-AuthController
-      │
-      ▼
- AuthService
-      │
-      ▼
- UserService
-      │
-      ▼
-   MongoDB
-```
-
-## UserModule
-
-Se encarga de la gestión de los usuarios y del acceso a MongoDB mediante Mongoose.
-
-Responsabilidades actuales:
-
-- Buscar usuarios.
-- Crear usuarios.
-- Actualizar Refresh Tokens.
-- Eliminar/invalidar Refresh Tokens.
-
-`UserService` es el encargado de comunicarse con el modelo de Mongoose.
-
-```text
-UserController
-      │
-      ▼
- UserService
-      │
-      ▼
- UserModel
-      │
-      ▼
-   MongoDB
-```
+[Ver documentación de arquitectura](./docs/architecture.md)
 
 ---
 
@@ -750,8 +661,6 @@ Token           iniciar sesión
 Reintentar solicitud
 ```
 
-El cliente debe guardar ambos tokens y utilizarlos según corresponda.
-
 ---
 
 # Base de datos
@@ -771,6 +680,10 @@ Los modelos específicos se registran dentro de sus módulos mediante:
 ```ts
 MongooseModule.forFeature();
 ```
+
+Para consultar la estructura y documentación de la base de datos:
+
+[Ver documentación de la base de datos](./docs/database.md)
 
 ---
 
@@ -934,111 +847,9 @@ user/dto/
 
 ---
 
-# Responsabilidad de las capas
+# Configuración de módulos
 
-La aplicación mantiene separadas las responsabilidades entre controllers, services y modelos.
-
-```text
-┌──────────────┐
-│  Controller  │
-│              │
-│ HTTP / JSON  │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│   Service    │
-│              │
-│   Lógica     │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│   Mongoose   │
-│    Model     │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│   MongoDB    │
-└──────────────┘
-```
-
-## Controller
-
-Se encarga de:
-
-- Recibir solicitudes HTTP.
-- Obtener parámetros y body.
-- Ejecutar el servicio correspondiente.
-- Devolver la respuesta.
-
-## Service
-
-Se encarga de:
-
-- Ejecutar la lógica de la aplicación.
-- Validar información relacionada con el proceso.
-- Coordinar operaciones entre diferentes componentes.
-- Trabajar con los modelos mediante Mongoose.
-
-## Model / Schema
-
-Define la estructura de los documentos almacenados en MongoDB.
-
----
-
-# Dependencias entre módulos
-
-La relación principal entre los módulos es:
-
-```text
-AppModule
-├── UserModule
-└── AuthModule
-       │
-       └── UserModule
-```
-
-`UserModule` exporta `UserService`, permitiendo que `AuthModule` pueda utilizarlo.
-
-La comunicación queda:
-
-```text
-AuthService
-     │
-     ▼
-UserService
-     │
-     ▼
-UserModel
-     │
-     ▼
-MongoDB
-```
-
----
-
-# AppModule
-
-`AppModule` es el módulo raíz de la aplicación.
-
-Se encarga de cargar:
-
-- `ConfigModule`
-- `MongooseModule`
-- `UserModule`
-- `AuthModule`
-
-La conexión a MongoDB se establece mediante:
-
-```ts
-MongooseModule.forRoot(process.env.MONGODB_URI);
-```
-
----
-
-# ConfigModule
+## ConfigModule
 
 Las variables de entorno son cargadas mediante:
 
@@ -1167,37 +978,22 @@ ni:
 src/
 │
 ├── auth/
-│   ├── dto/
-│   │   ├── Login.dto.ts
-│   │   ├── Logout.dto.ts
-│   │   └── Register.dto.ts
-│   │
-│   ├── guards/
-│   │   └── access_token_auth.guard.ts
-│   │
-│   ├── auth.controller.ts
-│   ├── auth.module.ts
-│   └── auth.service.ts
-│
 ├── user/
-│   ├── dto/
-│   │   ├── createUser.dto.ts
-│   │   ├── refreshToken.dto.ts
-│   │   └── update-user.dto.ts
-│   │
-│   ├── schemas/
-│   │   ├── inventory.schema.ts
-│   │   └── user.schema.ts
-│   │
-│   ├── user.controller.ts
-│   ├── user.module.ts
-│   └── user.service.ts
+├── inventory/
+├── items/
+├── recipes/
+├── world-objects/
+├── common/
 │
 ├── app.controller.ts
 ├── app.module.ts
 ├── app.service.ts
 └── main.ts
 ```
+
+Para consultar el detalle de cada módulo y sus relaciones:
+
+[Ver arquitectura del proyecto](./docs/architecture.md)
 
 ---
 
@@ -1242,6 +1038,8 @@ src/
 ├── user/
 ├── inventory/
 ├── items/
+├── recipes/
+├── world-objects/
 ├── neighbors/
 ├── pets/
 ├── quests/
@@ -1261,9 +1059,12 @@ Esto permite ampliar la API a medida que se agreguen nuevas funcionalidades al v
 
 ---
 
-## Base de Datos
+# Documentación relacionada
 
-![Base de datos](./docs/database.md)
+- [Arquitectura](./docs/architecture.md)
+- [Base de datos](./docs/database.md)
+
+---
 
 # Licencia
 

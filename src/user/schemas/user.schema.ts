@@ -31,7 +31,7 @@ export class User {
   @Prop({ type: [String], default: [] })
   defatedNeighbors!: string[];
 
-  @Prop({ required: true })
+  @Prop()
   activatedPetId!: string;
 
   @Prop({ required: true, default: 'defaultSkin' })

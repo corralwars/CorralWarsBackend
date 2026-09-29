@@ -1,159 +1,103 @@
-# Base de datos
+# Database
 
-CorralWars utiliza **MongoDB** como sistema de almacenamiento y **Mongoose** como ODM para definir, validar y trabajar con la estructura de los documentos.
+## Overview
 
-La base de datos combina:
+CorralWars utiliza **MongoDB** como base de datos no relacional y **Mongoose** como ODM mediante NestJS.
 
-- **Documentos principales**, almacenados como colecciones.
-- **Subdocumentos embebidos**, utilizados cuando una estructura pertenece directamente a otra entidad.
-- **Referencias mediante identificadores**, utilizadas cuando una entidad necesita relacionarse con otra colección.
+La base de datos se utiliza principalmente para almacenar información persistente del jugador, definiciones reutilizables del juego y el progreso de las entidades que el jugador obtiene.
 
-La arquitectura busca separar las **definiciones estáticas del juego** de las **instancias y progresión específicas de cada usuario**.
+La arquitectura separa las **definiciones estáticas** de las **instancias pertenecientes a un jugador**.
+
+```text
+Godot
+  │
+  │ HTTP / JSON
+  ▼
+NestJS API
+  │
+  │ Mongoose
+  ▼
+MongoDB
+```
 
 ---
 
-# Colecciones
+# Collections
 
-Las colecciones principales del proyecto son:
+Las principales colecciones de la base de datos son:
 
 ```text
 users
 items
 recipes
+neighbors
 worldobjects
 worldobjectsinstances
-neighbors
 combatentities
 combatentityinstances
 ```
 
-La estructura puede ampliarse posteriormente con nuevas colecciones cuando aparezcan nuevos dominios del juego.
+Las clases utilizadas dentro de estas colecciones pueden contener subdocumentos embebidos. Estos subdocumentos no representan colecciones independientes.
 
 ---
 
-# Subdocumentos comunes
+# Reusable subdocuments
 
-Algunas estructuras no necesitan existir como colecciones independientes porque forman parte de otros documentos.
-
-Actualmente existen schemas reutilizables en `src/common/schemas/`:
+El proyecto utiliza diferentes subdocumentos reutilizables:
 
 ```text
 Position
-Effect
-```
-
-Además existen subdocumentos específicos de determinados módulos:
-
-```text
 Inventory
 InventorySlot
-
+Effect
 Input
 Output
-
-CombatStats
-CombatAttack
+CombatEntityStats
+CombatEntityInstanceStats
+SpecialAttackStats
 ```
 
-Los subdocumentos que no representan entidades independientes se almacenan dentro del documento que los utiliza.
+Estos objetos representan datos que pertenecen a otro documento y no necesitan existir como documentos independientes.
 
----
-
-# Identificadores
-
-Los documentos principales utilizan el `_id` generado automáticamente por MongoDB.
-
-Ejemplo:
-
-```json
-{
-  "_id": "ObjectId(...)",
-  "name": "Madera"
-}
-```
-
-Cuando otro documento necesita hacer referencia a esta entidad, puede almacenar su identificador:
-
-```json
-{
-  "itemId": "ObjectId(...)"
-}
-```
-
-Conceptualmente:
-
-```text
-InventorySlot.itemId
-        │
-        ▼
-     Item._id
-```
-
-Los subdocumentos definidos mediante:
+Cuando corresponde, se utilizan esquemas con:
 
 ```ts
 @Schema({ _id: false })
 ```
 
-no reciben un `_id` independiente.
-
-Esto se utiliza para estructuras que no necesitan identidad propia.
+para evitar que MongoDB genere un `_id` independiente para cada subdocumento.
 
 ---
 
-# Definiciones e instancias
+# Users
 
-Una de las reglas principales del diseño de la base de datos es separar una **definición reutilizable** de una **instancia concreta**.
+La colección `users` almacena la información persistente del jugador.
 
-Por ejemplo:
+### Campos principales
 
-```text
-CombatEntity
-    │
-    ├── definición estática
-    │
-    └── reutilizable por diferentes usuarios
-```
-
-Mientras:
-
-```text
-CombatEntityInstance
-    │
-    ├── usuario
-    ├── nivel
-    ├── experiencia
-    └── progresión
-```
-
-Esto permite que varios jugadores utilicen la misma definición de una entidad de combate sin compartir su progreso.
-
-El mismo principio se utiliza con:
-
-```text
-WorldObject
-        │
-        └── WorldObjectInstance
-```
-
----
-
-# Colección `users`
-
-La colección `users` almacena las cuentas de los jugadores y la información persistente asociada a ellos.
+| Campo              | Tipo      | Descripción                                 |
+| ------------------ | --------- | ------------------------------------------- |
+| `_id`              | ObjectId  | Identificador generado por MongoDB          |
+| `username`         | String    | Nombre de usuario único                     |
+| `password`         | String    | Contraseña almacenada mediante hash         |
+| `refresh_token`    | String    | Refresh token almacenado para autenticación |
+| `coins`            | Number    | Cantidad de monedas del jugador             |
+| `position`         | Position  | Posición persistente del jugador            |
+| `inventory`        | Inventory | Inventario del jugador                      |
+| `defatedNeighbors` | String[]  | Identificadores de vecinos derrotados       |
 
 Ejemplo conceptual:
 
 ```json
 {
   "_id": "ObjectId(...)",
-  "username": "Yair17",
-  "password": "hash_de_la_contraseña",
-  "refresh_token": "hash_del_refresh_token",
-  "coins": 0,
+  "username": "player01",
+  "password": "hashed_password",
+  "refresh_token": "hashed_refresh_token",
+  "coins": 500,
   "position": {
-    "x": 0,
-    "y": 0
+    "x": 120,
+    "y": 250
   },
   "inventory": {
     "width": 7,
@@ -164,51 +108,26 @@ Ejemplo conceptual:
 }
 ```
 
-## Campos de `users`
-
-| Campo              | Tipo        | Requerido | Descripción                                |
-| ------------------ | ----------- | --------: | ------------------------------------------ |
-| `_id`              | `ObjectId`  |        Sí | Identificador generado por MongoDB.        |
-| `username`         | `String`    |        Sí | Nombre único del usuario.                  |
-| `password`         | `String`    |        Sí | Hash de la contraseña.                     |
-| `refresh_token`    | `String`    |        No | Hash del Refresh Token.                    |
-| `coins`            | `Number`    |        Sí | Cantidad de monedas del jugador.           |
-| `position`         | `Position`  |        Sí | Posición persistente del jugador.          |
-| `inventory`        | `Inventory` |        Sí | Inventario del jugador.                    |
-| `defatedNeighbors` | `String[]`  |        Sí | Identificadores de los vecinos derrotados. |
-
-> El campo `defatedNeighbors` conserva actualmente ese nombre en el schema, aunque semánticamente representa los vecinos derrotados.
+> `defatedNeighbors` mantiene actualmente ese nombre en el código. La corrección ortográfica a `defeatedNeighbors` puede hacerse posteriormente si se decide cambiar el nombre del campo.
 
 ---
 
-# Posición del jugador
+# Position
 
-La posición del jugador se almacena porque representa un dato que puede necesitar persistencia entre sesiones.
+`Position` es un subdocumento reutilizable que representa una posición bidimensional.
 
-```json
-{
-  "position": {
-    "x": 0,
-    "y": 0
-  }
+```ts
+@Schema({ _id: false })
+export class Position {
+  @Prop({ required: true, default: 0 })
+  x!: number;
+
+  @Prop({ required: true, default: 0 })
+  y!: number;
 }
 ```
 
-La estructura utilizada es `Position`.
-
----
-
-# Subdocumento `Position`
-
-`Position` es un subdocumento reutilizable definido en:
-
-```text
-src/common/schemas/position.schema.ts
-```
-
-Representa una posición bidimensional.
-
-Ejemplo:
+Estructura:
 
 ```json
 {
@@ -217,66 +136,41 @@ Ejemplo:
 }
 ```
 
-## Campos
+No existe una colección `positions`.
 
-| Campo | Tipo     | Requerido | Predeterminado | Descripción            |
-| ----- | -------- | --------: | -------------: | ---------------------- |
-| `x`   | `Number` |        Sí |            `0` | Coordenada horizontal. |
-| `y`   | `Number` |        Sí |            `0` | Coordenada vertical.   |
-
-`Position` utiliza:
-
-```ts
-@Schema({ _id: false })
-```
-
-por lo que no posee un identificador independiente.
-
----
-
-# Posiciones del mundo
-
-No toda posición del juego necesita almacenarse en MongoDB.
-
-Las posiciones que forman parte del **diseño fijo del mapa** pueden permanecer directamente en Godot.
+La posición se almacena dentro del documento que la necesita.
 
 Por ejemplo:
 
 ```text
-Vecino A → posición definida en la escena de Godot
-Vecino B → posición definida en la escena de Godot
-Cofre → posición definida en la escena de Godot
+User
+ └── position
+
+WorldObjectInstance
+ └── position
 ```
 
-MongoDB debe almacenar una posición cuando esta tenga que persistir como parte del estado del juego.
-
-Por ejemplo, una posición del jugador o la posición de una instancia de `WorldObject` puede requerir persistencia.
-
-Esto evita utilizar MongoDB para almacenar datos que forman parte exclusivamente del diseño estático del nivel.
+Las posiciones fijas del mapa que no necesitan persistencia pueden mantenerse directamente en Godot.
 
 ---
 
-# Subdocumento `Inventory`
+# Inventory
 
-`Inventory` representa el inventario de una entidad.
-
-Actualmente se utiliza dentro de:
+El inventario es un subdocumento compuesto por dimensiones y una lista de slots.
 
 ```text
-User
-WorldObjectInstance
+Inventory
+├── width
+├── height
+└── slots[]
 ```
 
-El inventario utiliza una cuadrícula de:
+La configuración predeterminada es:
 
 ```text
-7 × 5
-```
-
-equivalente a:
-
-```text
-35 slots
+width  = 7
+height = 5
+slots  = 35
 ```
 
 Ejemplo:
@@ -285,68 +179,49 @@ Ejemplo:
 {
   "width": 7,
   "height": 5,
-  "slots": []
+  "slots": [
+    {
+      "itemId": null,
+      "quantity": 0
+    }
+  ]
 }
 ```
 
-## Campos
-
-| Campo    | Tipo              | Requerido | Predeterminado | Descripción           |
-| -------- | ----------------- | --------: | -------------: | --------------------- |
-| `width`  | `Number`          |        Sí |            `7` | Número de columnas.   |
-| `height` | `Number`          |        Sí |            `5` | Número de filas.      |
-| `slots`  | `InventorySlot[]` |        Sí |           `[]` | Slots del inventario. |
-
----
-
-# Subdocumento `InventorySlot`
-
-Cada elemento del array `slots` representa un espacio individual del inventario.
-
-Ejemplo:
-
-```json
-{
-  "itemId": "ObjectId(...)",
-  "quantity": 1
-}
-```
-
-## Campos
-
-| Campo      | Tipo             | Requerido | Predeterminado | Descripción                        |
-| ---------- | ---------------- | --------: | -------------: | ---------------------------------- |
-| `itemId`   | `String \| null` |        No |         `null` | Identificador del Item almacenado. |
-| `quantity` | `Number`         |        Sí |            `0` | Cantidad del Item.                 |
-
-`itemId` puede ser `null` cuando el slot está vacío.
-
-`quantity` no puede ser negativa.
-
----
-
-# Creación del inventario
-
-El inventario se genera mediante:
-
-```ts
-createInventory(width, height);
-```
-
-La configuración actual es:
+El número de slots se obtiene mediante:
 
 ```text
-width  = 7
-height = 5
+width × height
 ```
 
-Por lo tanto:
+Por ejemplo:
 
 ```text
 7 × 5 = 35 slots
 ```
 
-Cada slot comienza con:
+---
+
+# InventorySlot
+
+Cada slot representa una posición dentro del inventario.
+
+```text
+InventorySlot
+├── itemId
+└── quantity
+```
+
+Ejemplo:
+
+```json
+{
+  "itemId": "item_id",
+  "quantity": 5
+}
+```
+
+Un slot vacío se representa mediante:
 
 ```json
 {
@@ -355,74 +230,67 @@ Cada slot comienza con:
 }
 ```
 
-El inventario se almacena como un subdocumento y no como una colección independiente.
+`quantity` tiene un valor mínimo de `0`.
 
 ---
 
-# Colección `items`
+# Items
 
 La colección `items` contiene las definiciones de los objetos disponibles en el juego.
 
-Un `Item` representa un objeto como concepto general.
+Actualmente un `Item` contiene:
+
+```text
+Item
+├── name
+├── type
+└── effects[]
+```
 
 Ejemplo:
 
 ```json
 {
   "_id": "ObjectId(...)",
-  "name": "Poción de vida",
+  "name": "Health Potion",
   "type": "consumable",
   "effects": [
     {
       "stat": "health",
       "operation": "add",
-      "value": 50
+      "value": 100
     }
   ]
 }
 ```
 
-## Campos
-
-| Campo     | Tipo       | Requerido | Descripción                         |
-| --------- | ---------- | --------: | ----------------------------------- |
-| `_id`     | `ObjectId` |        Sí | Identificador generado por MongoDB. |
-| `name`    | `String`   |        Sí | Nombre del objeto.                  |
-| `type`    | `String`   |        Sí | Tipo de objeto.                     |
-| `effects` | `Effect[]` |        No | Efectos producidos por el objeto.   |
-
-Un Item puede no tener efectos:
-
-```json
-{
-  "name": "Madera",
-  "type": "material",
-  "effects": []
-}
-```
+MongoDB genera automáticamente `_id`, por lo que no es necesario mantener un campo `key` adicional.
 
 ---
 
-# Subdocumento `Effect`
+# Effect
 
-`Effect` es un subdocumento reutilizable definido en:
+`Effect` es un subdocumento común utilizado por diferentes sistemas del juego.
 
-```text
-src/common/schemas/effect.schema.ts
-```
-
-No pertenece exclusivamente al módulo `items`.
-
-Puede utilizarse en diferentes dominios que necesiten representar modificaciones sobre estadísticas.
-
-Actualmente puede utilizarse en:
+Actualmente se utiliza, entre otros lugares, en:
 
 ```text
 Item
-CombatAttack / SpecialAttack
+ └── effects[]
+
+CombatEntity
+ └── specialAttacks[]
+      └── effects[]
 ```
 
-Esto permite mantener una única estructura para representar efectos.
+Su estructura es:
+
+```text
+Effect
+├── stat
+├── operation
+└── value
+```
 
 Ejemplo:
 
@@ -430,264 +298,135 @@ Ejemplo:
 {
   "stat": "health",
   "operation": "add",
-  "value": 50
+  "value": 100
 }
 ```
 
-## Campos
-
-| Campo       | Tipo     | Descripción                       |
-| ----------- | -------- | --------------------------------- |
-| `stat`      | `String` | Estadística afectada.             |
-| `operation` | `String` | Operación aplicada.               |
-| `value`     | `Number` | Valor utilizado por la operación. |
-
-`Effect` utiliza:
-
-```ts
-@Schema({ _id: false })
-```
-
-por lo que no posee un `_id` propio.
+La existencia de `Effect` como subdocumento común evita tener que crear estructuras diferentes para cada sistema que modifica estadísticas.
 
 ---
 
-# Colección `recipes`
+# Recipes
 
-La colección `recipes` contiene las recetas de fabricación.
+La colección `recipes` almacena las recetas de fabricación.
 
-Una receta define:
+Una receta contiene:
 
 ```text
-Items de entrada
-        ↓
-Proceso de fabricación
-        ↓
-Item de salida
+Recipe
+├── inputs[]
+└── outPut
 ```
 
-Ejemplo:
-
-```json
-{
-  "_id": "ObjectId(...)",
-  "inputs": [
-    {
-      "itemId": "ObjectId(...)",
-      "slot": "0",
-      "quantity": 2
-    }
-  ],
-  "outPut": {
-    "itemId": "ObjectId(...)",
-    "quantity": 1
-  }
-}
-```
-
-## Campos
-
-| Campo    | Tipo       | Requerido | Descripción                 |
-| -------- | ---------- | --------: | --------------------------- |
-| `_id`    | `ObjectId` |        Sí | Identificador de la receta. |
-| `inputs` | `Input[]`  |        Sí | Items necesarios.           |
-| `outPut` | `Output`   |        Sí | Item producido.             |
+Los elementos `Input` y `Output` son subdocumentos.
 
 ---
 
-# Subdocumento `Input`
+## Input
 
-`Input` representa un Item necesario para una receta.
+Cada entrada indica qué objeto y cantidad son necesarios para fabricar una receta.
+
+```text
+Input
+├── itemId
+├── slot
+└── quantity
+```
 
 Ejemplo:
 
 ```json
 {
-  "itemId": "ObjectId(...)",
-  "slot": "0",
-  "quantity": 2
+  "itemId": "wood_id",
+  "slot": "material",
+  "quantity": 5
 }
 ```
 
-## Campos
-
-| Campo      | Tipo     | Requerido | Mínimo | Descripción                       |
-| ---------- | -------- | --------: | -----: | --------------------------------- |
-| `itemId`   | `String` |        Sí |      — | Identificador del Item requerido. |
-| `slot`     | `String` |        Sí |      — | Slot utilizado por el Item.       |
-| `quantity` | `Number` |        Sí |    `1` | Cantidad necesaria.               |
-
 ---
 
-# Subdocumento `Output`
+## Output
 
-`Output` representa el resultado de una receta.
+Indica el objeto producido por la receta.
+
+```text
+Output
+├── itemId
+└── quantity
+```
 
 Ejemplo:
 
 ```json
 {
-  "itemId": "ObjectId(...)",
+  "itemId": "sword_id",
   "quantity": 1
 }
 ```
 
-## Campos
-
-| Campo      | Tipo     | Requerido | Mínimo | Descripción                       |
-| ---------- | -------- | --------: | -----: | --------------------------------- |
-| `itemId`   | `String` |        Sí |      — | Identificador del Item producido. |
-| `quantity` | `Number` |        Sí |    `1` | Cantidad producida.               |
-
 ---
 
-# Colección `worldobjects`
+# Neighbors
 
-`worldobjects` representa las definiciones de los objetos que pueden existir dentro del mundo.
+La colección `neighbors` representa a los vecinos disponibles dentro del juego.
 
-Un `WorldObject` describe el tipo de objeto.
+Un vecino puede estar asociado a una entidad de combate mediante `combatEntityId`.
 
-Ejemplos conceptuales:
+Estructura conceptual:
 
 ```text
-Forja
-Cofre
-Mesa de fabricación
-Horno
+Neighbor
+├── name
+├── level
+├── combatEntityId
+└── combatEntityAppearsAsPetInNeighborhood
 ```
-
-Una definición no representa necesariamente una instancia concreta dentro de una partida.
-
-Ejemplo conceptual:
-
-```json
-{
-  "_id": "ObjectId(...)",
-  "itemId": "ObjectId(...)",
-  "movible": false,
-  "recipes": []
-}
-```
-
-La posición de una instancia concreta corresponde a `WorldObjectInstance` cuando necesita persistencia.
-
----
-
-# Colección `worldobjectsinstances`
-
-`worldobjectsinstances` representa una instancia concreta de un `WorldObject`.
 
 Ejemplo:
 
 ```json
 {
   "_id": "ObjectId(...)",
-  "userId": "ObjectId(...)",
-  "worldObjectId": "ObjectId(...)",
-  "position": {
-    "x": 500,
-    "y": 300
-  },
-  "inventory": {
-    "width": 7,
-    "height": 5,
-    "slots": []
-  }
+  "name": "Balthazar",
+  "level": 5,
+  "combatEntityId": "griffin_id",
+  "combatEntityAppearsAsPetInNeighborhood": true
 }
 ```
 
-## Campos
+`combatEntityId` permite separar al vecino de la entidad de combate que utiliza.
 
-| Campo           | Tipo        | Requerido | Descripción                           |
-| --------------- | ----------- | --------: | ------------------------------------- |
-| `_id`           | `ObjectId`  |        Sí | Identificador de la instancia.        |
-| `userId`        | `String`    |        Sí | Usuario propietario.                  |
-| `worldObjectId` | `String`    |        Sí | Definición utilizada.                 |
-| `position`      | `Position`  |        Sí | Posición persistente de la instancia. |
-| `inventory`     | `Inventory` |        Sí | Inventario asociado.                  |
-
-Conceptualmente:
-
-```text
-WorldObject
-    │
-    ├── WorldObjectInstance → Usuario A
-    ├── WorldObjectInstance → Usuario A
-    └── WorldObjectInstance → Usuario B
-```
-
----
-
-# Colección `neighbors`
-
-La colección `neighbors` contiene la definición de los vecinos del juego.
-
-Un vecino puede estar relacionado con una `CombatEntity`.
-
-Ejemplo conceptual:
-
-```json
-{
-  "_id": "ObjectId(...)",
-  "name": "Balthazar Flint",
-  "level": 10,
-  "combatEntityId": "ObjectId(...)"
-}
-```
-
-## Campos principales
-
-| Campo            | Tipo       | Descripción                                     |
-| ---------------- | ---------- | ----------------------------------------------- |
-| `_id`            | `ObjectId` | Identificador del vecino.                       |
-| `name`           | `String`   | Nombre del vecino.                              |
-| `level`          | `Number`   | Nivel al que aparece o se desbloquea el vecino. |
-| `combatEntityId` | `String`   | Entidad de combate utilizada por el vecino.     |
-
-La relación principal es:
+Por ejemplo:
 
 ```text
 Neighbor
-    │
-    │ combatEntityId
-    ▼
+   │
+   └── combatEntityId
+          │
+          ▼
+    CombatEntity
+```
+
+Esto permite que un vecino utilice una entidad de combate sin duplicar la definición de esa entidad.
+
+---
+
+# CombatEntities
+
+La colección `combatentities` contiene las **definiciones base** de las entidades que pueden participar en combate.
+
+Una `CombatEntity` puede representar diferentes tipos de entidades:
+
+```text
 CombatEntity
+├── Pet
+├── Neighbor
+└── Boss
 ```
 
----
+No es necesario crear una colección independiente para cada tipo.
 
-# CombatEntity
-
-La colección `combatentities` contiene las **definiciones estáticas de las entidades que pueden participar en combate**.
-
-Una `CombatEntity` no significa necesariamente que sea una mascota.
-
-Puede representar:
-
-```text
-Mascota
-Vecino
-Jefe
-Otra entidad combatible
-```
-
-Esto permite evitar una colección independiente de `Pet` cuando la única finalidad de esta sería relacionar una mascota con una entidad de combate.
-
----
-
-# Características de `CombatEntity`
-
-Una `CombatEntity` contiene datos que definen su comportamiento y características generales.
-
-Entre ellos:
-
-```text
-name
-xpMultiplier
-sceneId
-baseStats
-specialAttacks / attacks
-```
+La entidad puede utilizar un identificador lógico de escena mediante `sceneId`, permitiendo que Godot determine qué escena `.tscn` debe instanciar.
 
 Ejemplo conceptual:
 
@@ -698,635 +437,668 @@ Ejemplo conceptual:
   "xpMultiplier": 1.5,
   "sceneId": "griffin",
   "baseStats": {
-    "health": 500,
-    "attack": 80,
-    "defense": 50,
-    "speed": 100,
-    "criticalChance": 10,
-    "criticalDamage": 50
-  },
-  "attacks": []
+    "health": 1000,
+    "attack": 10,
+    "defense": 0,
+    "velocity": 300,
+    "stamina": 30,
+    "specialChance": 0.2
+  }
 }
 ```
 
----
-
-# `sceneId`
-
-`sceneId` identifica de manera lógica qué escena de Godot corresponde a la entidad.
-
-Se recomienda almacenar un identificador estable:
-
-```json
-{
-  "sceneId": "griffin"
-}
-```
-
-en lugar de almacenar directamente:
+`sceneId` no necesita ser una ruta como:
 
 ```text
-res://entities/combat/griffin.tscn
+res://characters/griffin.tscn
 ```
 
-Godot puede mantener la relación:
+Puede utilizarse un identificador lógico:
 
 ```text
 griffin
-    ↓
-res://entities/combat/griffin.tscn
 ```
 
-Esto evita acoplar la base de datos a la estructura física de archivos del proyecto de Godot.
+y Godot puede encargarse de asociarlo con la escena correspondiente.
 
-El flujo conceptual es:
+---
+
+# CombatEntityStats
+
+`CombatEntityStats` contiene las estadísticas **base** de una `CombatEntity`.
+
+Actualmente contiene:
 
 ```text
-Neighbor
-    │
-    │ combatEntityId
-    ▼
+CombatEntityStats
+├── health
+├── attack
+├── defense
+├── velocity
+├── stamina
+└── specialChance
+```
+
+Restricciones actuales:
+
+| Estadística     | Mínimo |
+| --------------- | -----: |
+| `health`        |   1000 |
+| `attack`        |     10 |
+| `defense`       |      0 |
+| `velocity`      |    300 |
+| `stamina`       |     30 |
+| `specialChance` |    0.2 |
+
+Estas estadísticas pertenecen a la definición de la entidad y sirven como valores base.
+
+No representan el estado temporal durante un combate.
+
+Por ejemplo, el `health` actual durante una batalla no debería guardarse constantemente en MongoDB. Ese estado pertenece al tiempo de ejecución de Godot.
+
+---
+
+# SpecialAttackStats
+
+`SpecialAttackStats` contiene multiplicadores asociados a los ataques especiales.
+
+Actualmente contiene:
+
+```text
+SpecialAttackStats
+├── velocityMultiply
+└── attackMultiply
+```
+
+Esto permite que un ataque especial modifique determinados valores de la entidad durante su ejecución.
+
+Ejemplo conceptual:
+
+```json
+{
+  "velocityMultiply": 1.5,
+  "attackMultiply": 2
+}
+```
+
+Los ataques especiales también pueden utilizar `Effect[]` para modificar estadísticas.
+
+Por esta razón `Effect` se mantiene como un subdocumento común.
+
+---
+
+# CombatEntityInstances
+
+La colección `combatentityinstances` representa una **instancia concreta de una CombatEntity perteneciente a un jugador**.
+
+Esta separación permite que varios jugadores tengan la misma `CombatEntity`, pero con progreso diferente.
+
+```text
 CombatEntity
-    │
-    │ sceneId
-    ▼
-Godot
-    │
-    ▼
-Escena correspondiente
+       │
+       │ combatEntityId
+       ▼
+CombatEntityInstance
+       │
+       └── userId
+```
+
+Por ejemplo:
+
+```text
+CombatEntity
+└── Griffin
+
+        │
+        ├── Instance del jugador A
+        │      level: 10
+        │      attack: 50
+        │
+        └── Instance del jugador B
+               level: 10
+               attack: 30
 ```
 
 ---
 
-# Estadísticas base
+# CombatEntityInstance fields
 
-Las estadísticas base pertenecen a la definición de `CombatEntity`.
-
-Representan las características iniciales de la entidad antes de aplicar la progresión específica del usuario.
-
-Las estadísticas utilizadas actualmente son:
+Una instancia contiene:
 
 ```text
-health
-attack
-defense
-speed
-criticalChance
-criticalDamage
+CombatEntityInstance
+├── userId
+├── combatEntityId
+├── combatEntityStats
+├── statPoints
+├── experience
+└── level
 ```
 
 Ejemplo:
 
 ```json
 {
-  "health": 500,
-  "attack": 80,
-  "defense": 50,
-  "speed": 100,
-  "criticalChance": 10,
-  "criticalDamage": 50
-}
-```
-
-Las estadísticas base no representan el estado actual durante una batalla.
-
-El estado temporal del combate, como vida actual, animación, posición o cooldown, corresponde a la ejecución del juego en Godot.
-
----
-
-# Ataques especiales
-
-Los ataques especiales forman parte de la definición de una `CombatEntity`.
-
-Un ataque puede contener información como:
-
-```text
-name
-baseDamage
-cooldown
-range
-scalingStat
-scalingValue
-unlockLevel
-effects[]
-```
-
-Conceptualmente:
-
-```text
-CombatEntity
-└── specialAttacks[]
-    ├── name
-    ├── damage
-    ├── cooldown
-    ├── range
-    ├── scalingStat
-    ├── scalingValue
-    ├── unlockLevel
-    └── effects[]
-```
-
-Los ataques pueden utilizar estadísticas de la entidad para calcular su efecto final.
-
-Por ejemplo:
-
-```text
-Daño =
-baseDamage +
-(attack × scalingValue)
-```
-
-El sistema puede aplicar posteriormente multiplicadores específicos de la entidad para ajustar el balance.
-
----
-
-# Efectos de los ataques
-
-Los ataques pueden utilizar el mismo `Effect` definido en `common`.
-
-Por ejemplo:
-
-```json
-{
-  "name": "Venom Bite",
-  "effects": [
-    {
-      "stat": "speed",
-      "operation": "multiply",
-      "value": 0.7
-    }
-  ]
-}
-```
-
-De esta forma:
-
-```text
-Item
- └── effects[]
-       └── Effect
-
-CombatAttack
- └── effects[]
-       └── Effect
-```
-
-Ambos utilizan la misma estructura común.
-
----
-
-# Colección `combatentityinstances`
-
-`combatentityinstances` almacena la progresión de una `CombatEntity` para un usuario específico.
-
-Mientras:
-
-```text
-CombatEntity
-```
-
-define la entidad, `CombatEntityInstance` representa la versión que pertenece al progreso de un usuario.
-
-Ejemplo conceptual:
-
-```json
-{
   "_id": "ObjectId(...)",
-  "userId": "ObjectId(...)",
-  "combatEntityId": "ObjectId(...)",
-  "level": 10,
-  "experience": 1250,
-  "statPoints": 15,
-  "stats": {
-    "health": 5,
-    "attack": 7,
-    "defense": 3,
-    "speed": 0
-  }
+  "userId": "user_id",
+  "combatEntityId": "griffin_id",
+  "combatEntityStats": {
+    "health": 1200,
+    "attack": 25,
+    "defense": 10,
+    "velocity": 320,
+    "stamina": 40
+  },
+  "statPoints": 4,
+  "experience": 250,
+  "level": 3
 }
 ```
 
-## Relaciones
+---
+
+# CombatEntityInstanceStats
+
+Estas estadísticas representan las estadísticas **personalizadas de una instancia**.
+
+Actualmente contiene:
 
 ```text
-User
- │
- │ userId
- ▼
+CombatEntityInstanceStats
+├── health
+├── attack
+├── defense
+├── velocity
+└── stamina
+```
+
+Todas tienen un mínimo de `0`.
+
+La diferencia con `CombatEntityStats` es importante:
+
+```text
+CombatEntity
+└── CombatEntityStats
+      ↓
+   valores base
+
+
 CombatEntityInstance
- │
- │ combatEntityId
- ▼
-CombatEntity
+└── CombatEntityInstanceStats
+      ↓
+   valores personalizados
 ```
 
-Esto permite que:
+Por ejemplo, dos instancias de un mismo Griffin pueden tener diferentes valores:
 
 ```text
 CombatEntity
-    │
-    ├── Instance → Usuario A
-    ├── Instance → Usuario B
-    └── Instance → Usuario C
-```
+Griffin
+base attack = 10
 
-Cada usuario puede tener una progresión diferente.
+        │
+        ├── Instance A
+        │     attack = 25
+        │
+        └── Instance B
+              attack = 40
+```
 
 ---
 
-# Progresión de `CombatEntityInstance`
+# StatPoints
 
-La instancia puede almacenar:
+`statPoints` representa los puntos disponibles para distribuir entre las estadísticas de una instancia.
+
+Estos puntos están asociados a la progresión individual del jugador.
+
+Por ejemplo:
+
+```text
+Sube de nivel
+      │
+      ▼
++3 statPoints
+      │
+      ├── +2 attack
+      └── +1 defense
+```
+
+Después de distribuirlos:
+
+```text
+statPoints = 0
+```
+
+De esta manera:
 
 ```text
 level
-experience
-statPoints
-stats
+   │
+   ├── determina la progresión
+   │
+   └── puede otorgar statPoints
+                │
+                ▼
+       CombatEntityInstanceStats
 ```
 
-La idea es que los puntos asignados por el jugador modifiquen las estadísticas finales de la entidad.
-
-La definición base permanece en:
-
-```text
-CombatEntity.baseStats
-```
-
-Mientras la progresión del usuario permanece en:
-
-```text
-CombatEntityInstance.stats
-```
-
-Conceptualmente:
-
-```text
-Estadísticas finales
-        │
-        ├── CombatEntity.baseStats
-        │
-        └── CombatEntityInstance.stats
-```
-
-Esto evita modificar la definición global cuando un jugador mejora su propia entidad.
+`statPoints` no pertenece a `CombatEntity`, porque no es una característica fija de la entidad. Es progreso específico de una instancia perteneciente a un jugador.
 
 ---
 
-# Experiencia
+# Experience and Level
 
-Las entidades pueden utilizar un multiplicador de experiencia:
+Cada `CombatEntityInstance` mantiene su propio progreso:
 
 ```text
-xpMultiplier
+experience
+level
+statPoints
 ```
 
-Este valor permite que diferentes entidades tengan diferentes dificultades de progresión.
+Esto permite que una misma entidad tenga diferentes niveles dependiendo del jugador que la posea.
 
-La experiencia requerida para subir de nivel puede calcularse mediante una fórmula en lugar de almacenar una cantidad independiente para cada nivel.
+Ejemplo:
+
+```text
+Griffin
+   │
+   ├── Player A
+   │      level: 10
+   │      experience: 500
+   │
+   └── Player B
+          level: 3
+          experience: 120
+```
+
+El campo `xpMultiplier` de `CombatEntity` puede utilizarse para controlar cuánto cuesta hacer progresar diferentes entidades.
+
+Una fórmula posible sería:
+
+```gdscript
+func get_xp_required(level: int, xp_multiplier: float) -> int:
+    var base_xp := 100.0
+    var exponent := 1.5
+
+    return int(
+        base_xp *
+        xp_multiplier *
+        pow(level, exponent)
+    )
+```
+
+Esta fórmula representa una posible regla de gameplay y no implica que el cálculo tenga que ejecutarse dentro de MongoDB.
+
+---
+
+# WorldObjects
+
+La colección `worldobjects` representa la definición de un objeto interactuable del mundo.
+
+La definición contiene información reutilizable del objeto, mientras que los datos específicos de cada jugador pertenecen a `WorldObjectInstance`.
 
 Conceptualmente:
 
 ```text
-XP requerida =
-XP base × xpMultiplier × fórmula(nivel)
+WorldObject
+├── name / configuration
+├── itemId
+├── movible
+└── recipeIds[]
+```
+
+Las recetas se relacionan mediante sus identificadores en lugar de duplicar las recetas completas dentro de cada objeto.
+
+```text
+WorldObject
+   │
+   ├── recipeIds
+   │
+   └── Recipe
+```
+
+Las posiciones fijas de objetos colocados directamente en el mapa pueden mantenerse en Godot cuando no necesitan persistencia.
+
+---
+
+# WorldObjectInstances
+
+La colección `worldobjectsinstances` representa una instancia concreta de un objeto del mundo asociada a un jugador.
+
+Puede contener información como:
+
+```text
+WorldObjectInstance
+├── userId
+├── worldObjectId
+├── position
+└── inventory
+```
+
+La separación permite distinguir entre:
+
+```text
+WorldObject
+    ↓
+Definición reutilizable
+
+WorldObjectInstance
+    ↓
+Estado particular de un jugador
+```
+
+Por ejemplo, un cofre puede tener una definición común:
+
+```text
+WorldObject
+└── Chest
+```
+
+pero cada jugador puede tener una instancia diferente:
+
+```text
+Chest
+├── Player A
+│     └── inventory: [items...]
+│
+└── Player B
+      └── inventory: [items...]
+```
+
+---
+
+# Definition vs Instance
+
+Uno de los principios principales del diseño de la base de datos es separar **definiciones** de **instancias**.
+
+## Definición
+
+Contiene información que puede ser reutilizada.
+
+Ejemplos:
+
+```text
+CombatEntity
+Item
+Recipe
+WorldObject
+Neighbor
+```
+
+## Instancia
+
+Contiene información específica de un jugador o de su progreso.
+
+Ejemplos:
+
+```text
+CombatEntityInstance
+WorldObjectInstance
+```
+
+Esto evita duplicar información estática.
+
+Por ejemplo:
+
+```text
+CombatEntity
+└── Griffin
+      │
+      ├── baseStats
+      ├── attacks
+      └── sceneId
+```
+
+puede ser utilizado por múltiples:
+
+```text
+CombatEntityInstance
+```
+
+sin tener que copiar toda la definición.
+
+---
+
+# Combat flow
+
+La relación entre un vecino y una entidad de combate funciona de la siguiente manera:
+
+```text
+Player
+  │
+  ▼
+Neighbor
+  │
+  │ combatEntityId
+  ▼
+CombatEntity
+  │
+  │ sceneId
+  ▼
+Godot
+  │
+  ▼
+Instancia de la escena .tscn
 ```
 
 Por ejemplo:
 
 ```text
-XP requerida =
-100 × xpMultiplier × nivel^1.5
+Balthazar
+   │
+   └── combatEntityId
+          │
+          ▼
+       Griffin
+          │
+          └── sceneId: "griffin"
+                         │
+                         ▼
+                   Godot instancia
+                   griffin.tscn
 ```
 
-La fórmula concreta pertenece al sistema de progresión y puede ajustarse según el balance del juego.
-
-No es necesario almacenar:
-
-```text
-xpRequiredLevel2
-xpRequiredLevel3
-xpRequiredLevel4
-...
-```
-
-si estos valores pueden obtenerse mediante una fórmula.
+Esto permite que MongoDB almacene la definición y que Godot se encargue de la representación y ejecución del combate.
 
 ---
 
-# Relaciones principales
+# Runtime data vs persistent data
 
-Las relaciones entre las colecciones pueden representarse de la siguiente manera:
+No toda la información del juego necesita almacenarse en MongoDB.
+
+## MongoDB
+
+Se utiliza para información que debe persistir:
 
 ```text
-User
- │
- ├── inventory
- │
- ├── defatedNeighbors[]
- │
- └── CombatEntityInstance
-          │
-          └── combatEntityId
-                    │
-                    ▼
-              CombatEntity
+Usuario
+Inventario
+Monedas
+Progreso
+Experiencia
+Nivel
+StatPoints
+Estadísticas personalizadas
+Entidades obtenidas
+Objetos persistentes
+Posiciones que necesiten persistencia
+Definiciones de entidades
+Definiciones de objetos
+Recetas
+Items
 ```
 
-Los vecinos se relacionan con las entidades de combate:
+## Godot
+
+Se encarga principalmente del estado temporal del juego:
+
+```text
+Posición temporal durante el combate
+Velocidad actual
+Animaciones
+Cooldowns
+Ataques en ejecución
+Vida temporal durante una batalla
+Movimiento
+Colisiones
+IA
+Física
+Efectos visuales
+Estado temporal de las escenas
+```
+
+Por ejemplo, si una entidad tiene:
+
+```text
+health = 1200
+```
+
+ese valor puede ser una estadística persistente de la instancia.
+
+Pero si durante un combate recibe daño y temporalmente queda en:
+
+```text
+health actual = 650
+```
+
+ese estado pertenece al runtime de Godot y no necesita actualizar MongoDB en cada frame.
+
+---
+
+# Identifiers and relationships
+
+MongoDB genera `_id` para identificar los documentos.
+
+No se utiliza un campo adicional `key` como identificador de los documentos.
+
+Las relaciones se realizan mediante identificadores almacenados en los documentos.
+
+Ejemplo:
 
 ```text
 Neighbor
-    │
-    │ combatEntityId
-    ▼
-CombatEntity
-```
-
-Los inventarios pueden referenciar Items:
-
-```text
-InventorySlot.itemId
+└── combatEntityId
         │
         ▼
-     Item._id
+CombatEntity._id
 ```
 
-Las recetas pueden referenciar Items:
+Otro ejemplo:
 
 ```text
-Recipe.Input.itemId
-        │
-        ▼
-     Item._id
-
-Recipe.Output.itemId
-        │
-        ▼
-     Item._id
+CombatEntityInstance
+├── userId
+│     └── User._id
+│
+└── combatEntityId
+      └── CombatEntity._id
 ```
 
-Las instancias de objetos del mundo se relacionan con usuarios y definiciones:
+Los campos de referencia utilizados actualmente se manejan como `string` en los schemas correspondientes.
+
+---
+
+# Database relationship overview
 
 ```text
-WorldObjectInstance
+                         ┌──────────────┐
+                         │     User     │
+                         └──────┬───────┘
+                                │
+             ┌──────────────────┼──────────────────┐
+             │                  │                  │
+             ▼                  ▼                  ▼
+         Inventory          Position       CombatEntityInstance
+                                                    │
+                                    ┌───────────────┴──────────────┐
+                                    │                              │
+                                    ▼                              ▼
+                              CombatEntity                     User
+                                    │
+                                    │
+                                    ▼
+                                  Scene
+
+
+┌──────────────┐
+│   Neighbor   │
+└──────┬───────┘
        │
-       ├── userId
-       │      ↓
-       │    User
+       │ combatEntityId
+       ▼
+┌──────────────┐
+│ CombatEntity │
+└──────────────┘
+
+
+┌──────────────┐
+│ WorldObject  │
+└──────┬───────┘
        │
-       └── worldObjectId
-              ↓
-         WorldObject
+       │ recipeIds
+       ▼
+┌──────────────┐
+│    Recipe    │
+└──────────────┘
+
+
+┌──────────────┐
+│     Item     │
+└──────┬───────┘
+       │
+       │ itemId
+       ▼
+ InventorySlot / Recipe Input / Recipe Output
 ```
 
 ---
 
-# Diagrama general
+# Summary
 
-```text
-MongoDB
-│
-├── users
-│   ├── username
-│   ├── password
-│   ├── refresh_token
-│   ├── coins
-│   ├── position
-│   ├── inventory
-│   └── defatedNeighbors[]
-│
-├── items
-│   ├── name
-│   ├── type
-│   └── effects[]
-│       └── Effect
-│
-├── recipes
-│   ├── inputs[]
-│   │   ├── itemId
-│   │   ├── slot
-│   │   └── quantity
-│   │
-│   └── outPut
-│       ├── itemId
-│       └── quantity
-│
-├── neighbors
-│   ├── name
-│   ├── level
-│   └── combatEntityId
-│
-├── combatentities
-│   ├── name
-│   ├── xpMultiplier
-│   ├── sceneId
-│   ├── baseStats
-│   │   ├── health
-│   │   ├── attack
-│   │   ├── defense
-│   │   ├── speed
-│   │   ├── criticalChance
-│   │   └── criticalDamage
-│   │
-│   └── specialAttacks[]
-│       ├── name
-│       ├── damage
-│       ├── cooldown
-│       ├── range
-│       ├── scalingStat
-│       ├── scalingValue
-│       ├── unlockLevel
-│       └── effects[]
-│           └── Effect
-│
-├── combatentityinstances
-│   ├── userId
-│   ├── combatEntityId
-│   ├── level
-│   ├── experience
-│   ├── statPoints
-│   └── stats
-│
-├── worldobjects
-│   ├── itemId
-│   ├── movible
-│   └── recipes
-│
-└── worldobjectsinstances
-    ├── userId
-    ├── worldObjectId
-    ├── position
-    └── inventory
-```
-
----
-
-# Documentos embebidos vs colecciones
-
-La regla general utilizada es:
-
-```text
-¿Necesita existir por sí mismo?
-        │
-     ┌──┴──┐
-    Sí     No
-     │      │
-     ▼      ▼
-Colección  Subdocumento
-```
-
-## Colecciones
+La estructura de la base de datos se organiza alrededor de ocho colecciones principales:
 
 ```text
 users
 items
 recipes
 neighbors
-combatentities
-combatentityinstances
 worldobjects
 worldobjectsinstances
+combatentities
+combatentityinstances
 ```
 
-## Subdocumentos comunes
+El diseño utiliza subdocumentos para representar estructuras que no necesitan existir como documentos independientes:
 
 ```text
-Position
-Effect
-```
-
-## Subdocumentos específicos
-
-```text
-Inventory
-InventorySlot
-Input
-Output
-CombatStats
-CombatAttack
-```
-
-Un subdocumento no necesita una colección independiente cuando su existencia depende directamente del documento que lo contiene.
-
-Por ejemplo:
-
-```text
-Item
- └── Effect[]
-```
-
-o:
-
-```text
-CombatEntity
- └── specialAttacks[]
-      └── Effect[]
-```
-
----
-
-# Responsabilidades de MongoDB y Godot
-
-La base de datos almacena principalmente información que necesita persistencia.
-
-Por ejemplo:
-
-```text
-MongoDB
-├── cuentas
-├── progreso
-├── inventarios
-├── entidades desbloqueadas
-├── experiencia
-├── niveles
-├── estadísticas asignadas
-└── estado persistente
-```
-
-Godot mantiene principalmente información relacionada con la ejecución del juego y el diseño del gameplay:
-
-```text
-Godot
-├── movimiento
-├── IA
-├── animaciones
-├── ataques durante el combate
-├── cooldowns actuales
-├── posiciones temporales
-├── colisiones
-└── comportamiento de las entidades
-```
-
-Esto evita utilizar MongoDB para almacenar datos que solamente existen mientras el juego está ejecutándose.
-
----
-
-# Resumen
-
-La arquitectura de datos de CorralWars busca separar tres conceptos:
-
-```text
-DEFINICIÓN
-    │
-    ▼
-CombatEntity
-WorldObject
-Item
-Recipe
-Neighbor
-
-
-INSTANCIA / PROGRESO
-    │
-    ▼
-CombatEntityInstance
-WorldObjectInstance
-User
-
-
-SUBDOCUMENTOS
-    │
-    ▼
 Position
 Inventory
 InventorySlot
 Effect
 Input
 Output
-CombatStats
-CombatAttack
+CombatEntityStats
+CombatEntityInstanceStats
+SpecialAttackStats
 ```
 
-El modelo permite reutilizar definiciones del juego mientras cada jugador mantiene su propio progreso.
-
-En particular:
+La separación más importante del modelo es:
 
 ```text
-Neighbor
+Definición
     │
-    │ combatEntityId
-    ▼
-CombatEntity
+    ├── CombatEntity
+    ├── Item
+    ├── Recipe
+    ├── Neighbor
+    └── WorldObject
+
+Instancia / progreso
     │
-    │
-    ├── baseStats
-    ├── specialAttacks
-    └── sceneId
+    ├── CombatEntityInstance
+    └── WorldObjectInstance
 ```
 
-y:
-
-```text
-User
-    │
-    ▼
-CombatEntityInstance
-    │
-    ├── level
-    ├── experience
-    ├── statPoints
-    └── stats
-```
-
-De esta forma, la misma `CombatEntity` puede ser utilizada por diferentes usuarios sin compartir su progresión.
+Esto permite mantener separada la información reutilizable del juego de la información específica y persistente de cada jugador.

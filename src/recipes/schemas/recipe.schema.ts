@@ -11,7 +11,7 @@ export class Input {
   @Prop({ required: true })
   slot!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, min: 1 })
   quantity!: number;
 }
 const InputSchema = SchemaFactory.createForClass(Input);
@@ -21,7 +21,7 @@ export class Output {
   @Prop({ required: true })
   itemId!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, min: 1 })
   quantity!: number;
 }
 const OutputSchema = SchemaFactory.createForClass(Output);

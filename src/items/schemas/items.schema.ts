@@ -1,20 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { Effects, EffectsSchema } from 'src/common/schemas/effect.schema';
 
 export type ItemsDocument = HydratedDocument<Item>;
-
-@Schema({ _id: false })
-export class Effects {
-  @Prop()
-  stat!: string;
-
-  @Prop()
-  operation!: string;
-
-  @Prop()
-  value!: number;
-}
-const EffectsSchema = SchemaFactory.createForClass(Effects);
 
 @Schema()
 export class Item {

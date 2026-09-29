@@ -9,6 +9,9 @@ import { InventoryModule } from './inventory/inventory.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { WorldObjectsModule } from './world-objects/world-objects.module';
 import { ItemsModule } from './items/items.module';
+import { NeighborsModule } from './neighbors/neighbors.module';
+import { PetsModule } from './pets/pets.module';
+import { CombatEntitiesModule } from './combat-entities/combat-entities.module';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { ItemsModule } from './items/items.module';
     RecipesModule,
     WorldObjectsModule,
     ItemsModule,
+    NeighborsModule,
+    PetsModule,
+    CombatEntitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

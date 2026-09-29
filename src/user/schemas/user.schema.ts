@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, now } from 'mongoose';
 import {
   Inventory,
   InventorySchema,
@@ -8,7 +8,7 @@ import { Position, PositionSchema } from 'src/common/schemas/position.schema';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
   @Prop({ required: true, unique: true, minLength: 5 })
   username!: string;
@@ -19,7 +19,7 @@ export class User {
   @Prop()
   refresh_token!: string;
 
-  @Prop({ required: true, default: 0 })
+  @Prop({ required: true, default: 0, min: 0 })
   coins!: number;
 
   @Prop({ type: PositionSchema, required: true })
@@ -30,5 +30,11 @@ export class User {
 
   @Prop({ type: [String], default: [] })
   defatedNeighbors!: string[];
+
+  @Prop({ required: true })
+  activatedPetId!: string;
+
+  @Prop({ required: true, default: 'defaultSkin' })
+  activatedSkin!: string;
 }
 export const UserSchema = SchemaFactory.createForClass(User);

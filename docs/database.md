@@ -62,16 +62,16 @@ Ejemplo de un documento:
 
 ## Campos de `users`
 
-| Campo              | Tipo        | Requerido | Descripción                                                        |
-| ------------------ | ----------- | --------- | ------------------------------------------------------------------ |
-| `_id`              | `ObjectId`  | Sí        | Identificador único generado automáticamente por MongoDB.          |
-| `username`         | `String`    | Sí        | Nombre de usuario. Debe ser único y tener al menos 5 caracteres.   |
-| `password`         | `String`    | Sí        | Contraseña almacenada mediante un hash.                            |
-| `refresh_token`    | `String`    | No        | Hash del Refresh Token utilizado para mantener la sesión.          |
-| `coins`            | `Number`    | Sí        | Cantidad de monedas que tiene el jugador.                          |
-| `position`         | `Position`  | Sí        | Posición actual del jugador dentro del juego.                      |
-| `inventory`        | `Inventory` | Sí        | Inventario del jugador.                                            |
-| `defatedNeighbors` | `String[]`  | Sí        | Lista de identificadores de los vecinos derrotados por el jugador. |
+| Campo              | Tipo        | Requerido | Mínimo | Descripción                                                        |
+| ------------------ | ----------- | --------- | ------ | ------------------------------------------------------------------ |
+| `_id`              | `ObjectId`  | Sí        | n/a    | Identificador único generado automáticamente por MongoDB.          |
+| `username`         | `String`    | Sí        | n/a    | Nombre de usuario. Debe ser único y tener al menos 5 caracteres.   |
+| `password`         | `String`    | Sí        | n/a    | Contraseña almacenada mediante un hash.                            |
+| `refresh_token`    | `String`    | No        | n/a    | Hash del Refresh Token utilizado para mantener la sesión.          |
+| `coins`            | `Number`    | Sí        | 0      | Cantidad de monedas que tiene el jugador.                          |
+| `position`         | `Position`  | Sí        | n/a    | Posición actual del jugador dentro del juego.                      |
+| `inventory`        | `Inventory` | Sí        | n/a    | Inventario del jugador.                                            |
+| `defatedNeighbors` | `String[]`  | Sí        | n/a    | Lista de identificadores de los vecinos derrotados por el jugador. |
 
 ---
 
@@ -324,11 +324,11 @@ Ejemplo:
 
 ## Campos de `Input`
 
-| Campo      | Tipo     | Requerido | Descripción                         |
-| ---------- | -------- | --------- | ----------------------------------- |
-| `itemId`   | `String` | Sí        | Identificador del Item requerido.   |
-| `slot`     | `String` | Sí        | Slot utilizado dentro de la receta. |
-| `quantity` | `Number` | Sí        | Cantidad necesaria del Item.        |
+| Campo      | Tipo     | Requerido | Mínimo | Descripción                         |
+| ---------- | -------- | --------- | ------ | ----------------------------------- |
+| `itemId`   | `String` | Sí        | n/a    | Identificador del Item requerido.   |
+| `slot`     | `String` | Sí        | n/a    | Slot utilizado dentro de la receta. |
+| `quantity` | `Number` | Sí        | 1      | Cantidad necesaria del Item.        |
 
 ---
 
@@ -347,10 +347,10 @@ Ejemplo:
 
 ## Campos de `Output`
 
-| Campo      | Tipo     | Requerido | Descripción                       |
-| ---------- | -------- | --------- | --------------------------------- |
-| `itemId`   | `String` | Sí        | Identificador del Item producido. |
-| `quantity` | `Number` | Sí        | Cantidad producida.               |
+| Campo      | Tipo     | Requerido | Mínimo | Descripción                       |
+| ---------- | -------- | --------- | ------ | --------------------------------- |
+| `itemId`   | `String` | Sí        | 1      | Identificador del Item producido. |
+| `quantity` | `Number` | Sí        | 1      | Cantidad producida.               |
 
 ---
 
@@ -377,13 +377,13 @@ Ejemplo conceptual:
 
 ## Campos de `worldobjects`
 
-| Campo      | Tipo       | Requerido | Descripción                                         |
-| ---------- | ---------- | --------- | --------------------------------------------------- |
-| `_id`      | `ObjectId` | Sí        | Identificador generado automáticamente por MongoDB. |
-| `itemId`   | `String`   | No        | Identificador del Item relacionado con el objeto.   |
-| `position` | `Position` | Sí        | Posición del objeto dentro del mundo.               |
-| `movible`  | `Boolean`  | Sí        | Indica si el objeto puede desplazarse.              |
-| `recipes`  | `Recipe[]` | Sí        | Recetas asociadas al objeto.                        |
+| Campo | Tipo | Requerido || Descripción |
+| ---------- | ---------- | --------- || --------------------------------------------------- |
+| `_id` | `ObjectId` | Sí || Identificador generado automáticamente por MongoDB. |
+| `itemId` | `String` | No || Identificador del Item relacionado con el objeto. |
+| `position` | `Position` | Sí || Posición del objeto dentro del mundo. |
+| `movible` | `Boolean` | Sí || Indica si el objeto puede desplazarse. |
+| `recipes` | `Recipe[]` | Sí || Recetas asociadas al objeto. |
 
 Actualmente las recetas se almacenan como subdocumentos dentro de `WorldObjects`.
 
@@ -516,19 +516,29 @@ MongoDB
 │
 ├── users
 │   │
+│   ├── username
+│   ├── password
+│   ├── refresh_token
+│   ├── coins
 │   ├── position
 │   │   ├── x
 │   │   └── y
 │   │
-│   └── inventory
-│       ├── width
-│       ├── height
-│       └── slots[]
-│           ├── itemId
-│           └── quantity
+│   ├── inventory
+│   │   ├── width
+│   │   ├── height
+│   │   └── slots[]
+│   │       ├── itemId
+│   │       └── quantity
+│   │
+│   ├── defatedNeighbors[]
+│   ├── activatedPetId
+│   └── activatedSkin
 │
 ├── items
 │   │
+│   ├── name
+│   ├── type
 │   └── effects[]
 │       ├── stat
 │       ├── operation
@@ -545,27 +555,63 @@ MongoDB
 │       ├── itemId
 │       └── quantity
 │
-├── worldobjects
+├── neighboor
+│   │
+│   ├── name
+│   ├── level
+│   ├── combatEntityId
+│   ├── combatScene
+│   └── combatEntityAppearsAsPetInNeighborhood
+│
+├── worldObjects
 │   │
 │   ├── itemId
 │   ├── position
+│   │   ├── x
+│   │   └── y
 │   ├── movible
 │   └── recipes[]
 │
-└── worldobjectsinstances
-    │
-    ├── userId
-    ├── worldObjectId
-    ├── position
-    │   ├── x
-    │   └── y
-    │
-    └── inventory
-        ├── width
-        ├── height
-        └── slots[]
-            ├── itemId
-            └── quantity
+├── combatEntity
+│   │
+│   ├── name
+│   ├── stats
+│   └── specialAttacks
+│       │
+│       ├── name
+│       ├── effects[]
+│       │   ├── stat
+│       │   ├── operation
+│       │   └── value
+│       └── specialAttackStats
+│           ├── velocityMultiply
+│           └── attackMultiply
+│
+├── combatEntity
+│   │
+│   ├── userId
+│   ├── combatEntityId
+│   └── combatEntityStats
+│       ├── health
+│       ├── attack
+│       ├── defense
+│       ├── velocity
+│       └── stamina
+│
+├── worldObjectsInstances
+│   │
+│   ├── userId
+│   ├── worldObjectId
+│   ├── position
+│   │   ├── x
+│   │   └── y
+│   │
+│   └── inventory
+│       ├── width
+│       ├── height
+│       └── slots[]
+│           ├── itemId
+│           └── quantity
 ```
 
 ---

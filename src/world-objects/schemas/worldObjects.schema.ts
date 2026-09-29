@@ -1,11 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Position, PositionSchema } from 'src/common/schemas/position.schema';
-import {
-  Inventory,
-  InventorySchema,
-} from 'src/inventory/schemas/inventory.schema';
-import { Recipe, RecipeSchema } from 'src/recipes/schemas/recipes.schema';
+import { Recipe, RecipeSchema } from 'src/recipes/schemas/recipe.schema';
 
 export type WorldObjectsDocument = HydratedDocument<WorldObjects>;
 

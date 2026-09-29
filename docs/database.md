@@ -598,20 +598,20 @@ MongoDB
 │       ├── velocity
 │       └── stamina
 │
-├── worldObjectsInstances
-│   │
-│   ├── userId
-│   ├── worldObjectId
-│   ├── position
-│   │   ├── x
-│   │   └── y
-│   │
-│   └── inventory
-│       ├── width
-│       ├── height
-│       └── slots[]
-│           ├── itemId
-│           └── quantity
+└── worldObjectsInstances
+    │
+    ├── userId
+    ├── worldObjectId
+    ├── position
+    │   ├── x
+    │   └── y
+    │
+    └── inventory
+        ├── width
+        ├── height
+        └── slots[]
+            ├── itemId
+            └── quantity
 ```
 
 ---

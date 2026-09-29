@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model, Types } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
-import { createInventory } from './schemas/inventory.schema';
+import { createInventory } from '../inventory/schemas/inventory.schema';
 import * as bcrypt from 'bcrypt';
 import { RefreshTokenDto } from './dto/refreshToken.dto';
 

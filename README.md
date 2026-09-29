@@ -2,11 +2,11 @@
 
 API REST del proyecto **CorralWars**, desarrollada con NestJS, TypeScript, MongoDB y Mongoose.
 
-La API está diseñada para funcionar como backend de un videojuego desarrollado en Godot, encargándose de la autenticación, gestión de usuarios y persistencia de los datos del jugador.
+La API funciona como backend del videojuego desarrollado en Godot y se encarga principalmente de la autenticación, gestión de usuarios, persistencia y administración de los datos que necesitan mantenerse entre sesiones.
 
 ---
 
-# Descripción
+# Arquitectura
 
 CorralWars utiliza una arquitectura cliente-servidor:
 
@@ -31,17 +31,82 @@ CorralWars utiliza una arquitectura cliente-servidor:
 └─────────────┘
 ```
 
-Para consultar la estructura completa de módulos, responsabilidades y dependencias:
+Godot actúa como cliente del videojuego.
+
+NestJS proporciona la API REST y contiene la lógica de aplicación.
+
+MongoDB almacena la información que necesita persistencia.
+
+Para consultar la arquitectura completa:
 
 [Ver documentación de arquitectura](./docs/architecture.md)
+
+Para consultar la estructura de la base de datos:
+
+[Ver documentación de la base de datos](./docs/database.md)
+
+---
+
+# Tecnologías
+
+- NestJS
+- TypeScript
+- MongoDB
+- Mongoose
+- JWT
+- bcrypt
+- Swagger / OpenAPI
+- class-validator
+- Godot
+
+---
+
+# Estructura del proyecto
+
+```text
+src/
+│
+├── auth/
+│
+├── combat-entities/
+│   ├── combat-entities.controller.ts
+│   ├── combat-entities.module.ts
+│   ├── combat-entities.service.ts
+│   └── schemas/
+│       ├── combatEntity.schema.ts
+│       ├── combatEntityInstance.schema.ts
+│       └── stat.schema.ts
+│
+├── common/
+│   └── schemas/
+│       ├── effect.schema.ts
+│       └── position.schema.ts
+│
+├── inventory/
+│
+├── items/
+│
+├── neighbors/
+│
+├── recipes/
+│
+├── user/
+│
+├── world-objects/
+│
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
+```
+
+Los módulos principales representan diferentes dominios del juego.
 
 ---
 
 # Configuración
 
 ## Variables de entorno
-
-El proyecto utiliza variables de entorno para configurar el servidor, la conexión con MongoDB y las claves utilizadas por JWT.
 
 Crear un archivo `.env` en la raíz del proyecto:
 
@@ -57,15 +122,15 @@ JWT_REFRESH_SECRET=<tu_refresh_token_secret>
 NODE_ENV=DEV
 ```
 
-| Variable             | Descripción                                  |
-| -------------------- | -------------------------------------------- |
-| `PORT`               | Puerto donde se ejecutará la API             |
-| `MONGODB_URI`        | URI de conexión a MongoDB                    |
-| `JWT_SECRET`         | Secreto utilizado para firmar Access Tokens  |
-| `JWT_REFRESH_SECRET` | Secreto utilizado para firmar Refresh Tokens |
-| `NODE_ENV`           | Determina el entorno de ejecución            |
+| Variable             | Descripción                                   |
+| -------------------- | --------------------------------------------- |
+| `PORT`               | Puerto donde se ejecutará la API.             |
+| `MONGODB_URI`        | URI de conexión a MongoDB.                    |
+| `JWT_SECRET`         | Secreto utilizado para firmar Access Tokens.  |
+| `JWT_REFRESH_SECRET` | Secreto utilizado para firmar Refresh Tokens. |
+| `NODE_ENV`           | Entorno de ejecución.                         |
 
-> El archivo `.env` contiene información sensible y no debe subirse al repositorio.
+El archivo `.env` contiene información sensible y no debe subirse al repositorio.
 
 ---
 
@@ -83,13 +148,13 @@ git clone <URL_DEL_REPOSITORIO>
 cd CorralWars
 ```
 
-## Instalar las dependencias
+## Instalar dependencias
 
 ```bash
 npm install
 ```
 
-Después de instalar las dependencias, configura las variables de entorno en el archivo `.env`.
+Después de instalar las dependencias, configura las variables de entorno.
 
 ---
 
@@ -113,13 +178,13 @@ http://localhost:3500
 
 # Swagger
 
-Durante el desarrollo, Swagger se habilita cuando la variable:
+Durante el desarrollo, Swagger se habilita cuando:
 
 ```env
 NODE_ENV=DEV
 ```
 
-está configurada.
+está configurado.
 
 La documentación estará disponible en:
 
@@ -127,51 +192,57 @@ La documentación estará disponible en:
 http://localhost:3500/api
 ```
 
-Swagger permite visualizar los endpoints disponibles y probar las solicitudes directamente desde la interfaz.
-
-La especificación OpenAPI también está disponible en:
+La especificación OpenAPI está disponible en:
 
 ```text
 http://localhost:3500/api-json
 ```
 
+Swagger permite consultar los endpoints disponibles y realizar pruebas directamente desde la interfaz.
+
 ---
 
 # API
 
-La API está organizada mediante diferentes módulos.
+Actualmente existen endpoints relacionados principalmente con autenticación y usuarios.
 
-Actualmente cuenta con los siguientes endpoints:
+| Método | Endpoint                  | Descripción           |
+| ------ | ------------------------- | --------------------- |
+| `GET`  | `/`                       | Endpoint de prueba.   |
+| `POST` | `/auth/register`          | Registrar una cuenta. |
+| `POST` | `/auth/login`             | Iniciar sesión.       |
+| `POST` | `/auth/Logout`            | Cerrar sesión.        |
+| `GET`  | `/user/findOne/:username` | Buscar un usuario.    |
 
-| Método | Endpoint                  | Descripción          |
-| ------ | ------------------------- | -------------------- |
-| `GET`  | `/`                       | Endpoint de prueba   |
-| `POST` | `/auth/register`          | Registrar una cuenta |
-| `POST` | `/auth/login`             | Iniciar sesión       |
-| `POST` | `/auth/Logout`            | Cerrar sesión        |
-| `GET`  | `/user/findOne/:username` | Buscar un usuario    |
+La API seguirá creciendo conforme se implementen los diferentes módulos del videojuego.
 
 ---
 
 # Auth
 
-El módulo `AuthModule` contiene la lógica relacionada con la autenticación de los jugadores.
-
-Los endpoints utilizan el prefijo:
+El módulo de autenticación utiliza el prefijo:
 
 ```text
 /auth
 ```
 
+Actualmente proporciona:
+
+```text
+POST /auth/register
+POST /auth/login
+POST /auth/Logout
+```
+
 ---
 
-## Registrar una cuenta
+# Registro
 
 ```http
 POST /auth/register
 ```
 
-Registra un nuevo usuario y genera sus tokens de autenticación.
+Registra un nuevo usuario.
 
 ### Request
 
@@ -185,16 +256,16 @@ Registra un nuevo usuario y genera sus tokens de autenticación.
 
 ### Parámetros
 
-| Campo              | Tipo     | Requerido | Descripción                   |
-| ------------------ | -------- | --------- | ----------------------------- |
-| `username`         | `string` | Sí        | Nombre de usuario             |
-| `password`         | `string` | Sí        | Contraseña                    |
-| `confirm_password` | `string` | Sí        | Confirmación de la contraseña |
+| Campo              | Tipo     | Requerido | Descripción                 |
+| ------------------ | -------- | --------: | --------------------------- |
+| `username`         | `string` |        Sí | Nombre del usuario.         |
+| `password`         | `string` |        Sí | Contraseña.                 |
+| `confirm_password` | `string` |        Sí | Confirmación de contraseña. |
 
 ### Restricciones
 
-- `username` debe tener como mínimo 5 caracteres.
-- `password` debe tener como mínimo 10 caracteres.
+- `username` debe tener al menos 5 caracteres.
+- `password` debe tener al menos 10 caracteres.
 - `confirm_password` debe coincidir con `password`.
 
 ### Respuesta
@@ -206,22 +277,11 @@ Registra un nuevo usuario y genera sus tokens de autenticación.
 }
 ```
 
-El `access_token` se utilizará para realizar solicitudes autenticadas.
-
-El `refresh_token` se utilizará para mantener la sesión y renovar el Access Token cuando sea necesario.
-
-### Errores
-
-#### 401 Unauthorized
-
-Puede ocurrir cuando:
-
-- El nombre de usuario ya está registrado.
-- Las contraseñas no coinciden.
+La contraseña se almacena mediante un hash generado con `bcrypt`.
 
 ---
 
-# Iniciar sesión
+# Login
 
 ```http
 POST /auth/login
@@ -247,12 +307,10 @@ Autentica un usuario existente.
 }
 ```
 
-### Proceso interno
-
-Cuando se recibe una solicitud de login:
+### Flujo
 
 ```text
-Cliente
+Godot
    │
    │ username + password
    ▼
@@ -270,39 +328,29 @@ MongoDB
 
 El servidor:
 
-1. Busca el usuario mediante su nombre.
-2. Comprueba que el usuario exista.
-3. Compara la contraseña recibida con el hash almacenado.
-4. Genera un Access Token.
-5. Genera un Refresh Token.
-6. Almacena el Refresh Token hasheado.
-7. Devuelve ambos tokens al cliente.
+1. Busca el usuario.
+2. Comprueba que exista.
+3. Compara la contraseña con el hash.
+4. Genera el Access Token.
+5. Genera el Refresh Token.
+6. Almacena el hash del Refresh Token.
+7. Devuelve los tokens.
 
-La contraseña se verifica mediante `bcrypt`.
-
-### Errores
-
-```http
-401 Unauthorized
-```
-
-Cuando las credenciales no son correctas.
-
-La API utiliza el mismo mensaje tanto si el usuario no existe como si la contraseña es incorrecta:
+La contraseña se verifica mediante:
 
 ```text
-Usuario o contraseña incorrectos
+bcrypt.compare()
 ```
 
 ---
 
-# Cerrar sesión
+# Logout
 
 ```http
 POST /auth/Logout
 ```
 
-Cierra la sesión del usuario utilizando su Refresh Token.
+Cierra la sesión del usuario mediante su Refresh Token.
 
 ### Request
 
@@ -312,107 +360,39 @@ Cierra la sesión del usuario utilizando su Refresh Token.
 }
 ```
 
-### Proceso
-
 El servidor:
 
-1. Recibe el Refresh Token.
-2. Verifica el token utilizando `JWT_REFRESH_SECRET`.
-3. Obtiene el ID del usuario desde `payload.sub`.
-4. Busca la cuenta correspondiente.
-5. Invalida el Refresh Token almacenado.
-
-### Error
-
-```http
-401 Unauthorized
-```
-
-Puede ocurrir si el Refresh Token es inválido o está expirado.
-
----
-
-# User
-
-El módulo `UserModule` se encarga de gestionar los usuarios y sus datos almacenados en MongoDB.
-
-Los endpoints utilizan el prefijo:
-
-```text
-/user
-```
-
----
-
-## Buscar usuario
-
-```http
-GET /user/findOne/:username
-```
-
-Busca un usuario utilizando su nombre de usuario.
-
-### Ejemplo
-
-```http
-GET /user/findOne/Yair17
-```
-
-### Parámetros
-
-| Parámetro  | Tipo     | Descripción                            |
-| ---------- | -------- | -------------------------------------- |
-| `username` | `string` | Nombre del usuario que se desea buscar |
-
-### Ejemplo de solicitud
-
-```http
-GET http://localhost:3500/user/findOne/Yair17
-```
-
-El `UserController` recibe el nombre de usuario y delega la búsqueda a:
-
-```text
-UserController
-      │
-      ▼
- UserService
-      │
-      ▼
- UserModel
-      │
-      ▼
-  MongoDB
-```
+1. Verifica el Refresh Token.
+2. Obtiene el ID del usuario.
+3. Busca la cuenta correspondiente.
+4. Invalida el Refresh Token almacenado.
 
 ---
 
 # Autenticación
 
-CorralWars utiliza **JSON Web Tokens (JWT)** para manejar las sesiones.
+CorralWars utiliza **JSON Web Tokens (JWT)**.
 
-Se utilizan dos tipos de tokens:
+Se utilizan dos tokens:
 
 ```text
 Access Token
 Refresh Token
 ```
 
-Cada uno tiene una función y duración diferente.
-
 ---
 
-## Access Token
+# Access Token
 
-El Access Token se utiliza para autenticar las solicitudes que requieren una sesión activa.
+El Access Token se utiliza para autenticar solicitudes que requieren una sesión activa.
 
-Tiene una duración de:
+Actualmente tiene una duración de:
 
 ```text
 15 minutos
 ```
 
-Contiene información básica del usuario:
+Su payload contiene información básica del usuario:
 
 ```json
 {
@@ -421,44 +401,30 @@ Contiene información básica del usuario:
 }
 ```
 
-Para realizar una solicitud autenticada, el cliente debe enviar el token mediante el header:
-
-```http
-Access-Token: eyJ...
-```
-
 ---
 
-## AuthGuard
+# AuthGuard
 
-Las rutas que necesiten autenticación pueden utilizar el `AuthGuard`.
+Las rutas protegidas utilizan el guard:
 
-El guard obtiene el token desde:
-
-```http
-Access-Token
+```text
+src/auth/guards/access_token_auth.guard.ts
 ```
 
-Después lo verifica utilizando `JwtService`.
+El guard verifica el Access Token.
 
-Si el token es válido:
+Si es válido:
 
 ```text
 request.user = payload
 ```
 
-y la solicitud puede continuar.
+y la solicitud continúa.
 
 Si el token no existe:
 
 ```http
 401 Unauthorized
-```
-
-con el mensaje:
-
-```text
-Access token requerido
 ```
 
 Si el token es inválido o expiró:
@@ -467,17 +433,11 @@ Si el token es inválido o expiró:
 401 Unauthorized
 ```
 
-con el mensaje:
-
-```text
-Access token inválido
-```
-
 ---
 
 # Refresh Token
 
-El Refresh Token se utiliza para mantener la sesión del usuario cuando el Access Token ha expirado.
+El Refresh Token permite mantener la sesión del usuario cuando el Access Token expira.
 
 Tiene una duración de:
 
@@ -485,7 +445,7 @@ Tiene una duración de:
 7 días
 ```
 
-A diferencia del Access Token, utiliza una clave secreta independiente:
+Utiliza una clave independiente:
 
 ```env
 JWT_REFRESH_SECRET=<tu_refresh_jwt_secret>
@@ -503,9 +463,9 @@ Su payload contiene el ID del usuario:
 
 # Almacenamiento del Refresh Token
 
-El Refresh Token no se almacena directamente en MongoDB.
+El Refresh Token original no se almacena directamente.
 
-Antes de guardarlo, se genera un hash utilizando `bcrypt`.
+Primero se genera un hash mediante `bcrypt`:
 
 ```text
 Refresh Token
@@ -520,176 +480,54 @@ bcrypt.hash()
   MongoDB
 ```
 
-De esta manera, MongoDB no necesita almacenar el token original.
+Esto evita almacenar directamente el token original en la base de datos.
 
 ---
 
-# Flujo de autenticación
+# User
 
-## Registro
+El módulo `UserModule` administra las cuentas y datos persistentes del jugador.
 
-```mermaid
-sequenceDiagram
-    participant G as Godot
-    participant C as AuthController
-    participant A as AuthService
-    participant U as UserService
-    participant M as Mongoose
-    participant DB as MongoDB
-
-    G->>C: POST /auth/register
-    C->>A: register(RegisterDto)
-
-    A->>U: findByUsername()
-    U->>M: findOne()
-    M->>DB: Buscar usuario
-    DB-->>M: Resultado
-    M-->>U: Resultado
-    U-->>A: Usuario
-
-    A->>U: createUser()
-    U->>M: create()
-    M->>DB: Crear usuario
-
-    A->>A: Generar Access Token
-    A->>A: Generar Refresh Token
-
-    A->>U: updateRefreshToken()
-    U->>M: updateOne()
-    M->>DB: Guardar hash
-
-    A-->>C: Tokens
-    C-->>G: access_token + refresh_token
-```
-
----
-
-## Login
-
-```mermaid
-sequenceDiagram
-    participant G as Godot
-    participant C as AuthController
-    participant A as AuthService
-    participant U as UserService
-    participant DB as MongoDB
-
-    G->>C: POST /auth/login
-    C->>A: login(LoginDto)
-
-    A->>U: findByUsername()
-    U->>DB: Buscar usuario
-    DB-->>U: Usuario
-    U-->>A: Usuario
-
-    A->>A: bcrypt.compare()
-
-    A->>A: Generar Access Token
-    A->>A: Generar Refresh Token
-
-    A->>U: updateRefreshToken()
-    U->>DB: Guardar hash
-
-    A-->>C: Tokens
-    C-->>G: Tokens
-```
-
----
-
-## Logout
-
-```mermaid
-sequenceDiagram
-    participant G as Godot
-    participant C as AuthController
-    participant A as AuthService
-    participant U as UserService
-    participant DB as MongoDB
-
-    G->>C: POST /auth/Logout
-    C->>A: logout(LogoutDto)
-
-    A->>A: Verificar Refresh Token
-    A->>A: Obtener payload.sub
-
-    A->>U: deleteRefreshToken(userId)
-    U->>DB: Invalidar Refresh Token
-
-    DB-->>U: Resultado
-    U-->>A: Resultado
-    A-->>C: Respuesta
-    C-->>G: Respuesta
-```
-
----
-
-# Flujo de renovación de sesión
-
-El cliente puede utilizar el Refresh Token cuando el Access Token haya expirado.
-
-El flujo esperado es:
+El prefijo actual es:
 
 ```text
-Cliente
-   │
-   │ Request con Access Token
-   ▼
-NestJS
-   │
-   ├── Token válido ─────────► Procesar solicitud
-   │
-   └── Token inválido
-             │
-             ▼
-            401
-             │
-             ▼
-      Enviar Refresh Token
-             │
-             ▼
-      Verificar Refresh Token
-             │
-        ┌────┴────┐
-        │         │
-      válido    inválido
-        │         │
-        ▼         ▼
-Nuevo Access    Volver a
-Token           iniciar sesión
-        │
-        ▼
-Reintentar solicitud
+/user
+```
+
+## Buscar usuario
+
+```http
+GET /user/findOne/:username
+```
+
+Ejemplo:
+
+```http
+GET /user/findOne/Yair17
+```
+
+Flujo:
+
+```text
+UserController
+      │
+      ▼
+ UserService
+      │
+      ▼
+ UserModel
+      │
+      ▼
+ MongoDB
 ```
 
 ---
 
-# Base de datos
+# Datos persistentes del jugador
 
-La API utiliza MongoDB como base de datos no relacional.
+El usuario almacena información relacionada con su progreso general.
 
-Mongoose se utiliza como ODM para trabajar con MongoDB desde NestJS.
-
-La conexión se establece mediante:
-
-```ts
-MongooseModule.forRoot(process.env.MONGODB_URI);
-```
-
-Los modelos específicos se registran dentro de sus módulos mediante:
-
-```ts
-MongooseModule.forFeature();
-```
-
-Para consultar la estructura y documentación de la base de datos:
-
-[Ver documentación de la base de datos](./docs/database.md)
-
----
-
-# Modelo User
-
-Actualmente el usuario contiene los siguientes campos:
+Conceptualmente:
 
 ```text
 User
@@ -697,64 +535,32 @@ User
 ├── username
 ├── password
 ├── refresh_token
+├── coins
 ├── position
 ├── inventory
-├── level
-├── experience
-└── defatedNeighbors
+└── defatedNeighbors[]
 ```
 
-| Campo              | Tipo        | Descripción                        |
-| ------------------ | ----------- | ---------------------------------- |
-| `_id`              | `ObjectId`  | Identificador generado por MongoDB |
-| `username`         | `string`    | Nombre del usuario                 |
-| `password`         | `string`    | Hash de la contraseña              |
-| `refresh_token`    | `string`    | Hash del Refresh Token             |
-| `position`         | `Position`  | Posición del jugador               |
-| `inventory`        | `Inventory` | Inventario del jugador             |
-| `level`            | `number`    | Nivel actual                       |
-| `experience`       | `number`    | Experiencia acumulada              |
-| `defatedNeighbors` | `string[]`  | Vecinos derrotados                 |
+Los datos de progresión específica de una entidad de combate no se almacenan directamente en `User`.
 
----
-
-# Position
-
-`Position` es un subdocumento utilizado para almacenar la posición del jugador.
-
-```json
-{
-  "x": 0,
-  "y": 0
-}
-```
-
-Campos:
-
-| Campo | Tipo     |
-| ----- | -------- |
-| `x`   | `number` |
-| `y`   | `number` |
-
-Los valores iniciales son:
+En su lugar se utilizan:
 
 ```text
-x = 0
-y = 0
+CombatEntityInstance
 ```
 
-`Position` es un subdocumento de MongoDB sin `_id` propio.
+Esto permite que cada entidad tenga su propia progresión.
 
 ---
 
 # Inventory
 
-El inventario utiliza una estructura de slots.
+El inventario utiliza una estructura basada en slots.
 
-Actualmente se crea con:
+Configuración actual:
 
 ```text
-width = 7
+width  = 7
 height = 5
 ```
 
@@ -764,7 +570,7 @@ Por lo tanto:
 7 × 5 = 35 slots
 ```
 
-Cada slot contiene:
+Cada slot comienza como:
 
 ```json
 {
@@ -773,147 +579,449 @@ Cada slot contiene:
 }
 ```
 
----
-
-# InventorySlot
-
-| Campo      | Tipo             | Descripción              |
-| ---------- | ---------------- | ------------------------ |
-| `itemId`   | `string \| null` | ID del objeto almacenado |
-| `quantity` | `number`         | Cantidad del objeto      |
-
-`quantity` no puede tener un valor negativo.
-
----
-
-# Creación de usuarios
-
-Cuando se crea un usuario, el backend genera automáticamente algunos datos iniciales.
+Los Items se identifican mediante su `_id`.
 
 ```text
-username
-password
+InventorySlot.itemId
+        │
+        ▼
+     Item._id
+```
+
+---
+
+# Items
+
+Los Items representan las definiciones de objetos disponibles dentro del juego.
+
+```text
+Item
+├── name
+├── type
+└── effects[]
+```
+
+Los efectos utilizan el schema común:
+
+```text
+src/common/schemas/effect.schema.ts
+```
+
+Por lo tanto, `Effect` puede utilizarse en más de un dominio.
+
+---
+
+# Recipes
+
+Las recetas definen los objetos necesarios para fabricar un resultado.
+
+```text
+Recipe
+├── inputs[]
+│   ├── itemId
+│   ├── slot
+│   └── quantity
+│
+└── outPut
+    ├── itemId
+    └── quantity
+```
+
+Las recetas utilizan identificadores de `Item`.
+
+---
+
+# World Objects
+
+El sistema de objetos del mundo separa:
+
+```text
+WorldObject
+WorldObjectInstance
+```
+
+`WorldObject` representa una definición.
+
+`WorldObjectInstance` representa una instancia concreta asociada a un usuario.
+
+```text
+WorldObject
+    │
+    ├── Instance → Usuario A
+    ├── Instance → Usuario B
+    └── Instance → Usuario C
+```
+
+Una instancia puede almacenar:
+
+```text
+userId
+worldObjectId
 position
 inventory
-refresh_token
 ```
 
-Los valores iniciales principales son:
+---
+
+# Neighbors
+
+Los vecinos se administran mediante:
 
 ```text
-position:
-    x = 0
-    y = 0
-
-inventory:
-    width = 7
-    height = 5
-    slots = 35
-
-level:
-    1
-
-experience:
-    0
+src/neighbors/
 ```
 
-La contraseña se almacena mediante un hash generado con bcrypt.
-
----
-
-# DTOs
-
-Los DTOs se utilizan para definir y validar los datos recibidos por la API.
-
-Actualmente existen DTOs relacionados con autenticación y usuarios.
-
-## Auth DTOs
+La estructura principal relaciona al vecino con una `CombatEntity`:
 
 ```text
-auth/dto/
-├── Login.dto.ts
-├── Logout.dto.ts
-└── Register.dto.ts
+Neighbor
+├── name
+├── level
+└── combatEntityId
 ```
 
-## User DTOs
+La relación es:
 
 ```text
-user/dto/
-├── createUser.dto.ts
-├── refreshToken.dto.ts
-└── update-user.dto.ts
+Neighbor
+     │
+     │ combatEntityId
+     ▼
+CombatEntity
+```
+
+No existe una colección `Pet` independiente para representar esta relación.
+
+Una `CombatEntity` puede representar una mascota, un vecino, un jefe u otra entidad combatible.
+
+---
+
+# Combat Entities
+
+El sistema de combate se encuentra en:
+
+```text
+src/combat-entities/
+```
+
+Su estructura es:
+
+```text
+combat-entities/
+├── combat-entities.controller.ts
+├── combat-entities.module.ts
+├── combat-entities.service.ts
+└── schemas/
+    ├── combatEntity.schema.ts
+    ├── combatEntityInstance.schema.ts
+    └── stat.schema.ts
+```
+
+El sistema separa:
+
+```text
+CombatEntity
+CombatEntityInstance
 ```
 
 ---
 
-# Configuración de módulos
+# CombatEntity
 
-## ConfigModule
+`CombatEntity` representa la definición general de una entidad combatible.
 
-Las variables de entorno son cargadas mediante:
+Puede representar:
 
-```ts
-ConfigModule.forRoot({
-  isGlobal: true,
-});
+```text
+Mascota
+Vecino
+Jefe
+Otra entidad combatible
 ```
 
-Al utilizar `isGlobal: true`, el `ConfigModule` puede utilizarse desde otros módulos sin necesidad de importarlo repetidamente.
+La definición contiene datos que no dependen de un usuario:
 
----
-
-# JWT Module
-
-`AuthModule` registra `JwtModule` utilizando `registerAsync()` y `ConfigService`.
-
-Esto permite obtener el secreto desde las variables de entorno:
-
-```env
-JWT_SECRET=<tu_access_token_secret>
-```
-
-Los Refresh Tokens utilizan:
-
-```env
-JWT_REFRESH_SECRET=<tu_refresh_token_secret>
+```text
+CombatEntity
+├── name
+├── xpMultiplier
+├── sceneId
+├── baseStats
+└── specialAttacks[]
 ```
 
 ---
 
-# Comunicación con Godot
+# CombatEntityInstance
 
-La API está diseñada para que el cliente del videojuego pueda comunicarse mediante HTTP.
+`CombatEntityInstance` representa la progresión de una entidad para un usuario específico.
+
+```text
+CombatEntityInstance
+├── userId
+├── combatEntityId
+├── level
+├── experience
+├── statPoints
+└── stats
+```
+
+La relación es:
+
+```text
+User
+ │
+ ▼
+CombatEntityInstance
+ │
+ │ combatEntityId
+ ▼
+CombatEntity
+```
+
+Esto permite que dos jugadores tengan diferentes niveles y estadísticas para la misma `CombatEntity`.
+
+---
+
+# Progresión de combate
+
+La entidad tiene estadísticas base:
+
+```text
+CombatEntity
+└── baseStats
+```
+
+La instancia del usuario contiene la progresión:
+
+```text
+CombatEntityInstance
+└── stats
+```
+
+Los puntos de estadística permiten modificar las características de la entidad sin modificar su definición global.
+
+Las estadísticas contempladas incluyen:
+
+```text
+health
+attack
+defense
+speed
+criticalChance
+criticalDamage
+```
+
+---
+
+# Experiencia
+
+Las entidades pueden tener:
+
+```text
+xpMultiplier
+```
+
+Este valor permite modificar la cantidad de experiencia necesaria para progresar según la entidad.
+
+Conceptualmente:
+
+```text
+XP requerida =
+XP base × xpMultiplier × fórmula(nivel)
+```
+
+Esto permite que entidades con diferentes capacidades tengan diferentes dificultades de progresión sin almacenar una tabla independiente para cada nivel.
+
+---
+
+# Special Attacks
+
+Las entidades de combate pueden tener ataques especiales.
+
+Conceptualmente:
+
+```text
+CombatEntity
+└── specialAttacks[]
+    ├── name
+    ├── damage
+    ├── cooldown
+    ├── range
+    ├── scalingStat
+    ├── scalingValue
+    ├── unlockLevel
+    └── effects[]
+```
+
+Un ataque puede escalar con una estadística concreta de la entidad.
 
 Por ejemplo:
 
 ```text
-Godot
-   │
-   │ HTTP Request
-   ▼
-CorralWars API
-   │
-   ▼
-MongoDB
+baseDamage + attack × scalingValue
 ```
 
-Una solicitud autenticada puede tener la siguiente estructura:
-
-```http
-GET /ruta/protegida
-Content-Type: application/json
-Access-Token: eyJ...
-```
-
-El cliente puede almacenar:
+Los ataques también pueden producir efectos sobre otras entidades mediante:
 
 ```text
-access_token
-refresh_token
+effects[]
 ```
 
-y utilizarlos durante la sesión.
+Estos efectos utilizan el schema común `Effect`.
+
+---
+
+# Scene ID
+
+Cada `CombatEntity` puede tener un identificador lógico de escena:
+
+```text
+sceneId
+```
+
+Ejemplo:
+
+```json
+{
+  "sceneId": "griffin"
+}
+```
+
+Godot puede mantener el mapeo:
+
+```text
+griffin
+    ↓
+res://entities/combat/griffin.tscn
+```
+
+Esto evita almacenar rutas específicas del proyecto de Godot en MongoDB.
+
+El flujo es:
+
+```text
+Neighbor
+   │
+   ▼
+CombatEntity
+   │
+   ▼
+sceneId
+   │
+   ▼
+Godot
+   │
+   ▼
+Escena de combate
+```
+
+---
+
+# MongoDB vs Godot
+
+No toda la información del juego necesita persistencia.
+
+MongoDB almacena principalmente:
+
+```text
+Usuarios
+Inventarios
+Monedas
+Progreso
+Experiencia
+Niveles
+Estadísticas asignadas
+Entidades desbloqueadas
+Estado persistente
+```
+
+Godot administra principalmente:
+
+```text
+IA
+Movimiento
+Animaciones
+Colisiones
+Ataques durante la ejecución
+Cooldowns
+Estado temporal del combate
+Posiciones fijas del diseño
+```
+
+Por ejemplo, si un vecino siempre aparece en una posición fija del mapa, esa posición puede permanecer directamente en Godot.
+
+No es necesario almacenar todas las posiciones del mundo en MongoDB.
+
+---
+
+# Flujo de combate
+
+El flujo conceptual para obtener una entidad de combate es:
+
+```text
+Godot
+   │
+   │ Solicitud
+   ▼
+NestJS
+   │
+   ▼
+Neighbor
+   │
+   │ combatEntityId
+   ▼
+CombatEntity
+   │
+   │ sceneId
+   ▼
+Godot
+   │
+   ▼
+Carga de escena
+```
+
+Si el jugador tiene una instancia propia:
+
+```text
+User
+   │
+   ▼
+CombatEntityInstance
+   │
+   ├── level
+   ├── experience
+   └── stats
+   │
+   ▼
+Godot
+```
+
+Godot combina la definición y la progresión para ejecutar el combate.
+
+---
+
+# Base de datos
+
+La API utiliza MongoDB como base de datos no relacional.
+
+Mongoose se utiliza como ODM para trabajar con MongoDB desde NestJS.
+
+La conexión se configura mediante:
+
+```ts
+MongooseModule.forRoot(process.env.MONGODB_URI);
+```
+
+Los modelos específicos se registran mediante:
+
+```ts
+MongooseModule.forFeature();
+```
+
+Documentación:
+
+[Ver documentación de la base de datos](./docs/database.md)
 
 ---
 
@@ -931,19 +1039,19 @@ bcrypt.hash()
 
 para generar el hash.
 
-Durante el login se utiliza:
+Durante el login:
 
 ```text
 bcrypt.compare()
 ```
 
-para comprobar la contraseña.
+se utiliza para verificar la contraseña.
 
 ---
 
 ## JWT Secrets
 
-Los secretos utilizados por JWT deben mantenerse fuera del código fuente.
+Los secretos de JWT deben mantenerse fuera del código fuente.
 
 ```env
 JWT_SECRET=<secret>
@@ -956,7 +1064,7 @@ El archivo `.env` no debe subirse al repositorio.
 
 ## Datos sensibles
 
-Nunca se deben incluir en Git:
+Nunca deben incluirse en Git:
 
 ```text
 .env
@@ -964,36 +1072,32 @@ Nunca se deben incluir en Git:
 
 ni:
 
-- Claves JWT.
 - Contraseñas.
+- Claves JWT.
 - Credenciales de MongoDB.
 - Tokens.
-- Cualquier otra información sensible.
+- Otros secretos.
 
 ---
 
-# Estructura completa
+# Estructura de módulos
+
+Actualmente el backend contiene:
 
 ```text
 src/
-│
 ├── auth/
-├── user/
+├── combat-entities/
+├── common/
 ├── inventory/
 ├── items/
+├── neighbors/
 ├── recipes/
-├── world-objects/
-├── common/
-│
-├── app.controller.ts
-├── app.module.ts
-├── app.service.ts
-└── main.ts
+├── user/
+└── world-objects/
 ```
 
-Para consultar el detalle de cada módulo y sus relaciones:
-
-[Ver arquitectura del proyecto](./docs/architecture.md)
+Cada módulo representa una responsabilidad específica del backend.
 
 ---
 
@@ -1001,7 +1105,9 @@ Para consultar el detalle de cada módulo y sus relaciones:
 
 Actualmente la API cuenta con:
 
-- Conexión a MongoDB.
+- NestJS.
+- TypeScript.
+- MongoDB.
 - Mongoose.
 - Registro de usuarios.
 - Login.
@@ -1012,23 +1118,38 @@ Actualmente la API cuenta con:
 - Hashing de Refresh Tokens.
 - AuthGuard para Access Tokens.
 - Gestión de usuarios.
-- Inventario inicial.
-- Posición inicial del jugador.
-- Sistema de nivel y experiencia.
+- Inventario.
+- Posición persistente del jugador.
+- Items.
+- Recipes.
+- World Objects.
+- World Object Instances.
+- Neighbors.
+- Combat Entities.
+- Combat Entity Instances.
+- Effects reutilizables.
 - Swagger / OpenAPI.
 - Validación mediante DTOs.
 
-La comunicación principal está preparada para:
+La comunicación principal es:
 
 ```text
-Godot → HTTP → NestJS → Mongoose → MongoDB
+Godot
+   │
+   │ HTTP / JSON
+   ▼
+NestJS
+   │
+   │ Mongoose
+   ▼
+MongoDB
 ```
 
 ---
 
 # Desarrollo futuro
 
-La arquitectura permite agregar nuevos módulos sin mezclar sus responsabilidades con la autenticación.
+La arquitectura está preparada para agregar nuevos dominios del videojuego.
 
 Por ejemplo:
 
@@ -1041,21 +1162,27 @@ src/
 ├── recipes/
 ├── world-objects/
 ├── neighbors/
-├── pets/
+├── combat-entities/
 ├── quests/
 └── ...
 ```
 
-Cada módulo puede contener sus propios:
+Los nuevos módulos pueden seguir la estructura:
 
 ```text
-Controller
-Service
-DTOs
-Schemas
+module/
+├── module.controller.ts
+├── module.module.ts
+├── module.service.ts
+├── dto/
+└── schemas/
 ```
 
-Esto permite ampliar la API a medida que se agreguen nuevas funcionalidades al videojuego.
+Los schemas que sean utilizados por diferentes dominios pueden ubicarse en:
+
+```text
+common/schemas/
+```
 
 ---
 

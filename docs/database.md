@@ -1231,114 +1231,14 @@ Este diagrama refleja la estructura real de los schemas actuales en `src/*`: las
 flowchart TD
     MongoDB["MongoDB"]
 
-    MongoDB --> Users["users"]
-    Users --> U1["username"]
-    Users --> U2["password"]
-    Users --> U3["refresh_token"]
-    Users --> U4["coins"]
-    Users --> U5["position"]
-    U5 --> U5a["x"]
-    U5 --> U5b["y"]
-    Users --> U6["inventory"]
-    U6 --> U6a["width"]
-    U6 --> U6b["height"]
-    U6 --> U6c["slots[]"]
-    U6c --> U6c1["itemId"]
-    U6c --> U6c2["quantity"]
-    Users --> U7["defatedNeighbors[]"]
-    Users --> U8["activatedPetId"]
-    Users --> U9["activatedSkin"]
-    Users --> U10["timestamps"]
+    subgraph Usuarios["Colecciones del jugador"]
+        Users["users"]
+        UserPosition["position"]
+        UserInventory["inventory"]
+        UserDefeated["defatedNeighbors[]"]
+    end
 
-    MongoDB --> Items["items"]
-    Items --> I1["name"]
-    Items --> I2["type"]
-    Items --> I3["effects[]"]
-    I3 --> I3a["stat"]
-    I3 --> I3b["operation"]
-    I3 --> I3c["value"]
-
-    MongoDB --> Recipes["recipes"]
-    Recipes --> R1["inputs[]"]
-    R1 --> R1a["itemId"]
-    R1 --> R1b["slot"]
-    R1 --> R1c["quantity"]
-    Recipes --> R2["outPut"]
-    R2 --> R2a["itemId"]
-    R2 --> R2b["quantity"]
-
-    MongoDB --> Neighbors["neighboors"]
-    Neighbors --> N1["name"]
-    Neighbors --> N2["level"]
-    Neighbors --> N3["combatEntityId"]
-    Neighbors --> N4["combatScene"]
-    Neighbors --> N5["combatEntityAppearsAsPetInNeighborhood"]
-
-    MongoDB --> WorldObjects["worldobjects"]
-    WorldObjects --> W1["itemId"]
-    WorldObjects --> W2["position"]
-    W2 --> W2a["x"]
-    W2 --> W2b["y"]
-    WorldObjects --> W3["movible"]
-    WorldObjects --> W4["recipes[]"]
-    W4 --> W4a["inputs[]"]
-    W4a --> W4a1["itemId"]
-    W4a --> W4a2["slot"]
-    W4a --> W4a3["quantity"]
-    W4 --> W4b["outPut"]
-    W4b --> W4b1["itemId"]
-    W4b --> W4b2["quantity"]
-
-    MongoDB --> CombatEntities["combatentities"]
-    CombatEntities --> C1["name"]
-    CombatEntities --> C2["stats"]
-    C2 --> C2a["health"]
-    C2 --> C2b["attack"]
-    C2 --> C2c["defense"]
-    C2 --> C2d["velocity"]
-    C2 --> C2e["stamina"]
-    C2 --> C2f["specialChance"]
-    CombatEntities --> C3["specialAttacks[]"]
-    C3 --> C3a["name"]
-    C3 --> C3b["effects[]"]
-    C3b --> C3b1["stat"]
-    C3b --> C3b2["operation"]
-    C3b --> C3b3["value"]
-    C3 --> C3c["specialAttackStats"]
-    C3c --> C3c1["velocityMultiply"]
-    C3c --> C3c2["attackMultiply"]
-
-    MongoDB --> CombatEntityInstances["combatentityinstances"]
-    CombatEntityInstances --> CI1["userId"]
-    CombatEntityInstances --> CI2["combatEntityId"]
-    CombatEntityInstances --> CI3["combatEntityStats"]
-    CI3 --> CI3a["health"]
-    CI3 --> CI3b["attack"]
-    CI3 --> CI3c["defense"]
-    CI3 --> CI3d["velocity"]
-    CI3 --> CI3e["stamina"]
-    CombatEntityInstances --> CI4["statPoints"]
-    CombatEntityInstances --> CI5["experience"]
-    CombatEntityInstances --> CI6["level"]
-    CombatEntityInstances --> CI7["timestamps"]
-
-    MongoDB --> WorldObjectInstances["worldobjectsinstances"]
-    WorldObjectInstances --> WI1["userId"]
-    WorldObjectInstances --> WI2["worldObjectId"]
-    WorldObjectInstances --> WI3["position"]
-    WI3 --> WI3a["x"]
-    WI3 --> WI3b["y"]
-    WorldObjectInstances --> WI4["inventory"]
-    WI4 --> WI4a["width"]
-    WI4 --> WI4b["height"]
-    WI4 --> WI4c["slots[]"]
-    WI4c --> WI4c1["itemId"]
-    WI4c --> WI4c2["quantity"]
-```
-
-```mermaid
-flowchart LR
-    subgraph Definiciones["Definiciones reutilizables del juego"]
+    subgraph Sistema["Definiciones del juego"]
         Items["items"]
         Recipes["recipes"]
         Neighbors["neighboors"]
@@ -1346,20 +1246,51 @@ flowchart LR
         WorldObjects["worldobjects"]
     end
 
-    subgraph EstadoJugador["Estado persistente de cada jugador"]
+    subgraph Instancias["Instancias por usuario"]
+        CombatEntityInstances["combatentityinstances"]
+        WorldObjectInstances["worldobjectsinstances"]
+    end
+
+    MongoDB --> Users
+    MongoDB --> Items
+    MongoDB --> Recipes
+    MongoDB --> Neighbors
+    MongoDB --> CombatEntities
+    MongoDB --> WorldObjects
+    MongoDB --> CombatEntityInstances
+    MongoDB --> WorldObjectInstances
+
+    Users --> UserPosition
+    Users --> UserInventory
+    Users --> UserDefeated
+
+    Items --> Recipes
+    Items --> WorldObjects
+    CombatEntities --> CombatEntityInstances
+    WorldObjects --> WorldObjectInstances
+```
+
+```mermaid
+flowchart LR
+    subgraph Definiciones["Definiciones reutilizables"]
+        Items["items"]
+        Recipes["recipes"]
+        Neighbors["neighboors"]
+        CombatEntities["combatentities"]
+        WorldObjects["worldobjects"]
+    end
+
+    subgraph Estado["Estado persistente del jugador"]
         Users["users"]
         CombatInstances["combatentityinstances"]
         WorldInstances["worldobjectsinstances"]
     end
 
-    Users --> Inventory["inventory"]
-    Users --> Position["position"]
-    Users --> Defeated["defatedNeighbors[]"]
-
-    CombatEntities --> CombatInstances
-    WorldObjects --> WorldInstances
     Items --> Recipes
     Items --> WorldObjects
-    Items --> Users
+    CombatEntities --> CombatInstances
+    WorldObjects --> WorldInstances
+    Users --> CombatInstances
+    Users --> WorldInstances
 ```
 

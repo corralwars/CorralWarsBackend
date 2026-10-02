@@ -49,7 +49,6 @@ Los módulos de NestJS representan dominios del videojuego:
 ```text
 Auth
 User
-Inventory
 Items
 Recipes
 WorldObjects
@@ -72,6 +71,8 @@ Los schemas reutilizables que no pertenecen exclusivamente a un dominio se encue
 ```text
 common/
 ```
+
+Los elementos almacenados en `Common` no representan necesariamente módulos de NestJS. Por ejemplo, `Inventory`, `Position` y `Effect` son estructuras reutilizables utilizadas por otros dominios.
 
 ---
 
@@ -101,13 +102,8 @@ src/
 ├── common/
 │   └── schemas/
 │       ├── effect.schema.ts
+│       ├── inventory.schema.ts
 │       └── position.schema.ts
-│
-├── inventory/
-│   ├── inventory.module.ts
-│   ├── inventory.service.ts
-│   └── schemas/
-│       └── inventory.schema.ts
 │
 ├── items/
 │   ├── items.controller.ts
@@ -166,16 +162,16 @@ AppModule
 │
 ├── ConfigModule
 ├── MongooseModule
-│
 ├── AuthModule
+├── CombatEntitiesModule
 ├── UserModule
-├── InventoryModule
 ├── ItemsModule
 ├── RecipesModule
 ├── WorldObjectsModule
-├── NeighborsModule
-└── CombatEntitiesModule
+└── NeighborsModule
 ```
+
+`Inventory` no aparece como módulo independiente porque no posee endpoints ni lógica de aplicación propia.
 
 ---
 
@@ -247,40 +243,6 @@ UserController
 ```
 
 El usuario también contiene información persistente relacionada con el progreso general del jugador, como monedas, inventario, posición y vecinos derrotados.
-
----
-
-# InventoryModule
-
-`InventoryModule` administra la lógica relacionada con los inventarios.
-
-El inventario utiliza una estructura de slots:
-
-```text
-Inventory
-├── width
-├── height
-└── slots[]
-    ├── itemId
-    └── quantity
-```
-
-El mismo schema puede ser utilizado por diferentes entidades que necesiten un inventario.
-
-Actualmente se utiliza principalmente en:
-
-```text
-User
-WorldObjectInstance
-```
-
-El módulo contiene:
-
-```text
-inventory.module.ts
-inventory.service.ts
-schemas/inventory.schema.ts
-```
 
 ---
 
@@ -392,6 +354,12 @@ WorldObject
 ```
 
 Esto permite reutilizar una definición sin mezclar los datos específicos de cada usuario.
+
+El `inventory` utilizado por una instancia es el schema reutilizable definido en:
+
+```text
+common/schemas/inventory.schema.ts
+```
 
 ---
 
@@ -656,8 +624,13 @@ Actualmente:
 common/
 └── schemas/
     ├── effect.schema.ts
+    ├── inventory.schema.ts
     └── position.schema.ts
 ```
+
+Estos schemas no representan módulos independientes de NestJS. Son estructuras de datos que pueden ser utilizadas por diferentes dominios.
+
+---
 
 ## Position
 
@@ -669,6 +642,44 @@ Representa una posición bidimensional:
   "y": 0
 }
 ```
+
+Puede utilizarse en diferentes entidades que necesiten almacenar una posición persistente.
+
+---
+
+## Inventory
+
+Representa un inventario basado en slots.
+
+Su estructura conceptual es:
+
+```text
+Inventory
+├── width
+├── height
+└── slots[]
+    ├── itemId
+    └── quantity
+```
+
+El inventario puede ser utilizado por diferentes entidades del sistema.
+
+Actualmente se utiliza principalmente en:
+
+```text
+User
+WorldObjectInstance
+```
+
+El schema se encuentra en:
+
+```text
+common/schemas/inventory.schema.ts
+```
+
+No existe un `InventoryModule` independiente porque el inventario no posee endpoints ni una lógica de aplicación propia.
+
+---
 
 ## Effect
 
@@ -682,7 +693,7 @@ Representa una modificación sobre una estadística:
 }
 ```
 
-Estos elementos son subdocumentos y no colecciones independientes.
+Puede utilizarse como subdocumento en diferentes sistemas, como Items y ataques especiales.
 
 ---
 
@@ -845,7 +856,7 @@ Controller
 Service
      │
      ├── UserService
-     ├── InventoryService
+     ├── ItemsService
      └── CombatEntitiesService
 ```
 
@@ -873,6 +884,17 @@ El schema define:
 - Subdocumentos.
 
 Mongoose utiliza estos schemas para construir los modelos utilizados por los services.
+
+Los schemas reutilizables se encuentran en `Common` cuando no pertenecen exclusivamente a un dominio:
+
+```text
+common/schemas/
+├── effect.schema.ts
+├── inventory.schema.ts
+└── position.schema.ts
+```
+
+Estos schemas pueden formar parte de documentos de diferentes colecciones sin convertirse en colecciones independientes.
 
 ---
 
@@ -909,6 +931,20 @@ CombatEntityModel
 
 La comunicación entre módulos permite mantener separadas las responsabilidades sin duplicar lógica.
 
+Los schemas de `Common`, en cambio, pueden ser importados directamente por los dominios que los necesiten.
+
+Por ejemplo:
+
+```text
+User
+   │
+   └── InventorySchema
+
+WorldObjectInstance
+   │
+   └── InventorySchema
+```
+
 ---
 
 # Flujo general de una solicitud
@@ -940,6 +976,8 @@ Controller
    ▼
 Godot
 ```
+
+Los schemas de `Common` participan como estructuras de los documentos cuando son necesarios, pero no reciben solicitudes HTTP directamente.
 
 ---
 
@@ -1038,7 +1076,6 @@ CorralWars
     │
     ├── Auth
     ├── User
-    ├── Inventory
     ├── Items
     ├── Recipes
     ├── WorldObjects
@@ -1051,3 +1088,5 @@ CorralWars
 ```
 
 La arquitectura permite agregar nuevos dominios sin mezclar sus responsabilidades con otros módulos.
+
+Los elementos reutilizables, como `Inventory`, `Position` y `Effect`, pueden compartirse entre estos dominios mediante `Common` sin necesidad de crear módulos independientes para cada uno.

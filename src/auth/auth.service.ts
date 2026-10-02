@@ -9,7 +9,7 @@ import { LogoutDto } from './dto/Logout.dto';
 @Injectable()
 export class AuthService {
   constructor(
-    private jwtService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly userService: UserService,
   ) {}
 
@@ -108,5 +108,13 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Token invalido o expirado');
     }
+  }
+
+  async getJwt(jwt: string) {
+    const payload = this.jwtService.verify(jwt);
+    if (!payload) {
+      throw new UnauthorizedException('token no existente');
+    }
+    return payload;
   }
 }

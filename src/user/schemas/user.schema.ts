@@ -3,7 +3,7 @@ import { HydratedDocument, now } from 'mongoose';
 import {
   Inventory,
   InventorySchema,
-} from '../../inventory/schemas/inventory.schema';
+} from '../../common/schemas/inventory.schema';
 import { Position, PositionSchema } from 'src/common/schemas/position.schema';
 
 export type UserDocument = HydratedDocument<User>;

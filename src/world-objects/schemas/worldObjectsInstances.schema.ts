@@ -1,10 +1,10 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Position, PositionSchema } from 'src/common/schemas/position.schema';
 import {
   Inventory,
   InventorySchema,
-} from 'src/inventory/schemas/inventory.schema';
+} from 'src/common/schemas/inventory.schema';
 
 export type WorldObjectsInstanceDocument =
   HydratedDocument<WorldObjectsInstance>;
@@ -23,3 +23,6 @@ export class WorldObjectsInstance {
   @Prop({ required: true, type: InventorySchema })
   inventory!: Inventory;
 }
+
+export const WorldObjectsInstanceSchema =
+  SchemaFactory.createForClass(WorldObjectsInstance);

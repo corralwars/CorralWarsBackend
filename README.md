@@ -279,6 +279,26 @@ Registra un nuevo usuario.
 
 La contraseña se almacena mediante un hash generado con `bcrypt`.
 
+### Flujo de registro
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant S as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/register
+    C->>S: register()
+    S->>U: createUser()
+    U->>DB: Crear usuario
+    DB-->>U: Usuario creado
+    U-->>S: Usuario
+    S-->>C: Access + Refresh Token
+    C-->>G: Tokens
+```
+
 ---
 
 # Login
@@ -326,6 +346,30 @@ UserService
 MongoDB
 ```
 
+También puede representarse mediante:
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant S as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/login
+    C->>S: login()
+    S->>U: findByUsername()
+    U->>DB: Buscar usuario
+    DB-->>U: Usuario
+    U-->>S: Usuario
+    S->>S: bcrypt.compare()
+    S->>S: Generar JWT
+    S->>U: updateRefreshToken()
+    U->>DB: Guardar hash
+    S-->>C: Tokens
+    C-->>G: Access + Refresh Token
+```
+
 El servidor:
 
 1. Busca el usuario.
@@ -366,6 +410,27 @@ El servidor:
 2. Obtiene el ID del usuario.
 3. Busca la cuenta correspondiente.
 4. Invalida el Refresh Token almacenado.
+
+### Flujo
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant S as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/Logout
+    C->>S: logout()
+    S->>S: Verificar Refresh Token
+    S->>U: invalidateRefreshToken()
+    U->>DB: Eliminar / invalidar token
+    DB-->>U: Confirmación
+    U-->>S: Confirmación
+    S-->>C: Logout exitoso
+    C-->>G: Respuesta
+```
 
 ---
 
@@ -661,6 +726,27 @@ position
 inventory
 ```
 
+### Flujo de busqueda de worldobjectinstance por usuario
+
+```mermaid
+sequenceDiagram
+
+participant G as GODOT
+participant C as world-objects.controller
+participant S as world-bojects.service
+participant SA as auth.service
+participant M as Mongodb
+
+G->>C:GET 'world-objects/worldObjectInstanceByUser/tokenDelUsuario'
+C->>S:userWorldObjectsByUser(token)
+S->>SA:verificar validez del token
+SA->>S:retorno del token
+S->>M:busqueda en la base de datos
+M->>S:Envio de datos
+S->>C:Envio de datos
+C->>G:Envio de datos
+```
+
 ---
 
 # Neighbors
@@ -677,7 +763,8 @@ La estructura principal relaciona al vecino con una `CombatEntity`:
 Neighbor
 ├── name
 ├── level
-└── combatEntityId
+├── combatEntityId
+└── combatEntityAppearsAsPetInNeighborhood
 ```
 
 La relación es:
@@ -752,18 +839,88 @@ CombatEntity
 
 ---
 
+# CombatEntityStats
+
+`CombatEntityStats` contiene las estadísticas base de una `CombatEntity`.
+
+```text
+CombatEntityStats
+├── health
+├── attack
+├── defense
+├── velocity
+├── stamina
+└── specialChance
+```
+
+Restricciones actuales:
+
+| Estadística     | Mínimo |
+| --------------- | -----: |
+| `health`        |   1000 |
+| `attack`        |     10 |
+| `defense`       |      0 |
+| `velocity`      |    300 |
+| `stamina`       |     30 |
+| `specialChance` |    0.2 |
+
+Estas estadísticas pertenecen a la definición de la entidad.
+
+Por ejemplo:
+
+```text
+CombatEntity
+└── baseStats
+    ├── health
+    ├── attack
+    ├── defense
+    ├── velocity
+    ├── stamina
+    └── specialChance
+```
+
+---
+
+# SpecialAttackStats
+
+Los ataques especiales pueden utilizar estadísticas específicas para modificar su comportamiento.
+
+Actualmente `SpecialAttackStats` contiene:
+
+```text
+SpecialAttackStats
+├── velocityMultiply
+└── attackMultiply
+```
+
+Estos valores permiten modificar características como la velocidad y el ataque durante la ejecución de un ataque especial.
+
+Los ataques especiales también pueden utilizar:
+
+```text
+effects[]
+```
+
+Estos efectos utilizan el schema común:
+
+```text
+src/common/schemas/effect.schema.ts
+```
+
+---
+
 # CombatEntityInstance
 
-`CombatEntityInstance` representa la progresión de una entidad para un usuario específico.
+`CombatEntityInstance` representa una instancia concreta de una `CombatEntity` perteneciente a un usuario.
 
 ```text
 CombatEntityInstance
 ├── userId
 ├── combatEntityId
-├── level
-├── experience
+├── combatEntityStats
 ├── statPoints
-└── stats
+├── experience
+└── level
 ```
 
 La relación es:
@@ -779,50 +936,116 @@ CombatEntityInstance
 CombatEntity
 ```
 
-Esto permite que dos jugadores tengan diferentes niveles y estadísticas para la misma `CombatEntity`.
+Esto permite que diferentes usuarios tengan la misma `CombatEntity`, pero con diferentes niveles, experiencia y estadísticas.
 
 ---
 
-# Progresión de combate
+# CombatEntityInstanceStats
 
-La entidad tiene estadísticas base:
+Las estadísticas de una instancia son independientes de las estadísticas base de la entidad.
+
+```text
+CombatEntityInstanceStats
+├── health
+├── attack
+├── defense
+├── velocity
+└── stamina
+```
+
+Estas estadísticas tienen un mínimo de `0`.
+
+La diferencia es:
 
 ```text
 CombatEntity
-└── baseStats
-```
+└── CombatEntityStats
+      ↓
+   Estadísticas base
 
-La instancia del usuario contiene la progresión:
 
-```text
 CombatEntityInstance
-└── stats
+└── CombatEntityInstanceStats
+      ↓
+   Estadísticas personalizadas
 ```
 
-Los puntos de estadística permiten modificar las características de la entidad sin modificar su definición global.
-
-Las estadísticas contempladas incluyen:
+Por ejemplo:
 
 ```text
-health
-attack
-defense
-speed
-criticalChance
-criticalDamage
+CombatEntity
+└── Griffin
+    └── base attack = 10
+             │
+             ├── Instance A
+             │     └── attack = 25
+             │
+             └── Instance B
+                   └── attack = 40
 ```
 
 ---
 
-# Experiencia
+# StatPoints
 
-Las entidades pueden tener:
+`statPoints` representa los puntos disponibles que una instancia puede utilizar para mejorar sus estadísticas.
+
+Los puntos pertenecen a la instancia y no a la definición global de la `CombatEntity`.
+
+Conceptualmente:
 
 ```text
-xpMultiplier
+Subir de nivel
+      │
+      ▼
++ statPoints
+      │
+      ▼
+CombatEntityInstanceStats
 ```
 
-Este valor permite modificar la cantidad de experiencia necesaria para progresar según la entidad.
+Por ejemplo:
+
+```text
+Nivel 4 → Nivel 5
+             │
+             ▼
+       +3 statPoints
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+   +2 attack   +1 defense
+```
+
+Esto permite que dos instancias de una misma entidad desarrollen estadísticas diferentes.
+
+---
+
+# Experience and Level
+
+Cada `CombatEntityInstance` mantiene su propio:
+
+```text
+level
+experience
+statPoints
+```
+
+Por ejemplo:
+
+```text
+Griffin
+   │
+   ├── Player A
+   │      level: 10
+   │      experience: 500
+   │
+   └── Player B
+          level: 3
+          experience: 120
+```
+
+La `CombatEntity` contiene `xpMultiplier`, que puede utilizarse para modificar la experiencia necesaria para progresar.
 
 Conceptualmente:
 
@@ -831,56 +1054,17 @@ XP requerida =
 XP base × xpMultiplier × fórmula(nivel)
 ```
 
-Esto permite que entidades con diferentes capacidades tengan diferentes dificultades de progresión sin almacenar una tabla independiente para cada nivel.
-
----
-
-# Special Attacks
-
-Las entidades de combate pueden tener ataques especiales.
-
-Conceptualmente:
-
-```text
-CombatEntity
-└── specialAttacks[]
-    ├── name
-    ├── damage
-    ├── cooldown
-    ├── range
-    ├── scalingStat
-    ├── scalingValue
-    ├── unlockLevel
-    └── effects[]
-```
-
-Un ataque puede escalar con una estadística concreta de la entidad.
-
-Por ejemplo:
-
-```text
-baseDamage + attack × scalingValue
-```
-
-Los ataques también pueden producir efectos sobre otras entidades mediante:
-
-```text
-effects[]
-```
-
-Estos efectos utilizan el schema común `Effect`.
-
 ---
 
 # Scene ID
 
-Cada `CombatEntity` puede tener un identificador lógico de escena:
+Las `CombatEntity` pueden utilizar un identificador lógico mediante:
 
 ```text
 sceneId
 ```
 
-Ejemplo:
+Por ejemplo:
 
 ```json
 {
@@ -888,85 +1072,22 @@ Ejemplo:
 }
 ```
 
-Godot puede mantener el mapeo:
+Godot puede asociar este identificador con una escena:
 
 ```text
 griffin
-    ↓
+   │
+   ▼
 res://entities/combat/griffin.tscn
 ```
 
-Esto evita almacenar rutas específicas del proyecto de Godot en MongoDB.
-
-El flujo es:
-
-```text
-Neighbor
-   │
-   ▼
-CombatEntity
-   │
-   ▼
-sceneId
-   │
-   ▼
-Godot
-   │
-   ▼
-Escena de combate
-```
+De esta manera MongoDB no necesita conocer la ruta interna del proyecto de Godot.
 
 ---
 
-# MongoDB vs Godot
-
-No toda la información del juego necesita persistencia.
-
-MongoDB almacena principalmente:
+# Flujo de CombatEntity
 
 ```text
-Usuarios
-Inventarios
-Monedas
-Progreso
-Experiencia
-Niveles
-Estadísticas asignadas
-Entidades desbloqueadas
-Estado persistente
-```
-
-Godot administra principalmente:
-
-```text
-IA
-Movimiento
-Animaciones
-Colisiones
-Ataques durante la ejecución
-Cooldowns
-Estado temporal del combate
-Posiciones fijas del diseño
-```
-
-Por ejemplo, si un vecino siempre aparece en una posición fija del mapa, esa posición puede permanecer directamente en Godot.
-
-No es necesario almacenar todas las posiciones del mundo en MongoDB.
-
----
-
-# Flujo de combate
-
-El flujo conceptual para obtener una entidad de combate es:
-
-```text
-Godot
-   │
-   │ Solicitud
-   ▼
-NestJS
-   │
-   ▼
 Neighbor
    │
    │ combatEntityId
@@ -978,10 +1099,10 @@ CombatEntity
 Godot
    │
    ▼
-Carga de escena
+Escena correspondiente
 ```
 
-Si el jugador tiene una instancia propia:
+Cuando existe una instancia asociada a un jugador:
 
 ```text
 User
@@ -991,37 +1112,140 @@ CombatEntityInstance
    │
    ├── level
    ├── experience
-   └── stats
-   │
-   ▼
-Godot
+   ├── statPoints
+   └── combatEntityStats
+          │
+          ▼
+        Godot
 ```
-
-Godot combina la definición y la progresión para ejecutar el combate.
 
 ---
 
-# Base de datos
+# MongoDB y Godot
 
-La API utiliza MongoDB como base de datos no relacional.
+No toda la información del videojuego necesita almacenarse en MongoDB.
 
-Mongoose se utiliza como ODM para trabajar con MongoDB desde NestJS.
+MongoDB se utiliza principalmente para información persistente:
 
-La conexión se configura mediante:
-
-```ts
-MongooseModule.forRoot(process.env.MONGODB_URI);
+```text
+Usuarios
+Inventarios
+Monedas
+Progreso
+Experiencia
+Niveles
+StatPoints
+Estadísticas de entidades
+Entidades obtenidas
+Objetos persistentes
+Recetas
+Items
+Definiciones de entidades
 ```
 
-Los modelos específicos se registran mediante:
+Godot administra principalmente información de ejecución:
 
-```ts
-MongooseModule.forFeature();
+```text
+Movimiento
+IA
+Animaciones
+Colisiones
+Física
+Cooldowns
+Ataques durante la ejecución
+Estado temporal del combate
+Efectos visuales
+Posiciones fijas del mapa
 ```
 
-Documentación:
+Por ejemplo, una `CombatEntityInstance` puede tener:
 
-[Ver documentación de la base de datos](./docs/database.md)
+```text
+health = 1200
+```
+
+como estadística persistente.
+
+Sin embargo, durante un combate su vida actual puede cambiar temporalmente:
+
+```text
+health actual = 650
+```
+
+Este estado temporal puede mantenerse en Godot sin actualizar MongoDB constantemente.
+
+---
+
+# Diagrama general del sistema
+
+```mermaid
+flowchart TD
+    Godot[Godot Client]
+
+    API[NestJS REST API]
+
+    DB[(MongoDB)]
+
+    Godot -->|HTTP / JSON| API
+    API -->|Mongoose| DB
+```
+
+---
+
+# Diagrama general de módulos
+
+```mermaid
+flowchart TD
+    App[NestJS Application]
+
+    App --> Auth[AuthModule]
+    App --> User[UserModule]
+    App --> Inventory[InventoryModule]
+    App --> Items[ItemsModule]
+    App --> Recipes[RecipesModule]
+    App --> Neighbors[NeighborsModule]
+    App --> Combat[CombatEntitiesModule]
+    App --> World[WorldObjectsModule]
+    App --> Common[Common Schemas]
+
+    Auth --> User
+    User --> Inventory
+    Neighbors --> Combat
+    Combat --> Common
+    Items --> Common
+    World --> Inventory
+    World --> Recipes
+```
+
+---
+
+# Flujo general de datos
+
+```mermaid
+flowchart LR
+    G[Godot]
+    A[NestJS API]
+    U[Users]
+    C[CombatEntity]
+    CI[CombatEntityInstance]
+    I[Items]
+    R[Recipes]
+    W[WorldObjects]
+    WI[WorldObjectInstances]
+    N[Neighbors]
+    DB[(MongoDB)]
+
+    G --> A
+    A --> DB
+
+    U --> CI
+    N --> C
+    CI --> C
+    W --> R
+    WI --> W
+    I --> R
+    U --> WI
+```
 
 ---
 
@@ -1127,6 +1351,8 @@ Actualmente la API cuenta con:
 - Neighbors.
 - Combat Entities.
 - Combat Entity Instances.
+- Estadísticas base y personalizadas para entidades.
+- Sistema de `statPoints`.
 - Effects reutilizables.
 - Swagger / OpenAPI.
 - Validación mediante DTOs.

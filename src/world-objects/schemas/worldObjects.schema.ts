@@ -1,4 +1,4 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Position, PositionSchema } from 'src/common/schemas/position.schema';
 import { Recipe, RecipeSchema } from 'src/recipes/schemas/recipe.schema';
@@ -20,3 +20,4 @@ export class WorldObjects {
   @Prop({ type: [RecipeSchema], required: true })
   recipes!: Recipe[];
 }
+export const WorldObjectsSchema = SchemaFactory.createForClass(WorldObjects);

@@ -11,6 +11,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
   ) {}
+
   async login(body: LoginDto) {
     const data = await this.userService.findByUsername(body.username);
     if (!data) {
@@ -34,6 +35,7 @@ export class AuthService {
     });
     return { access_token, refresh_token };
   }
+
   async register(body: RegisterDto) {
     const user = await this.userService.findByUsername(body.username);
     if (user) {
@@ -60,6 +62,7 @@ export class AuthService {
     });
     return { access_token, refresh_token };
   }
+
   async logout(body: LogoutDto) {
     try {
       const payload = this.jwtService.verify(body.refresh_token, {
@@ -70,13 +73,15 @@ export class AuthService {
       throw new UnauthorizedException('Token invalido o expirado');
     }
   }
-  async getJwt(jwt: string) {
+
+  async getPayload(jwt: string) {
     const payload = this.jwtService.verify(jwt);
     if (!payload) {
       throw new UnauthorizedException('token no existente');
     }
     return payload;
   }
+
   async refreshToken(token: string) {
     const payload = this.jwtService.verify(token);
     return this.userService.updateRefreshToken(payload.sub, token);

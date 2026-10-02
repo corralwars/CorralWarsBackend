@@ -11,6 +11,10 @@ import {
 } from './schemas/worldObjects.schema';
 import { NotFoundError } from 'rxjs';
 import { AuthService } from 'src/auth/auth.service';
+import { DeleteWorldObjectInstances } from './dto/DeleteWorldObjectInstances.dto';
+import { CreateWorldObjectInstance } from './dto/createWorldObjectInstance.dto';
+import { createInventory } from 'src/common/schemas/inventory.schema';
+import { FindWorldObjectsById } from './dto/findWorldObjectsById.dto';
 
 @Injectable()
 export class WorldObjectsService {
@@ -25,9 +29,40 @@ export class WorldObjectsService {
   ) {}
 
   async userWorldObjectsByUser(token: string) {
-    const payload = await this.authService.getJwt(token);
+    const payload = await this.authService.getPayload(token);
     return await this.worldObjectsInstanceDocument.find({
       userId: payload.sub,
+    });
+  }
+
+  async getWorldObjects() {
+    return await this.worldObjectsDocument.find();
+  }
+
+  async getWorldObjectById(body: FindWorldObjectsById) {
+    return await this.worldObjectsDocument.findById(body.id);
+  }
+
+  async deleteWorldObjectsInstance(body: DeleteWorldObjectInstances) {
+    return await this.worldObjectsInstanceDocument.deleteOne({
+      _id: body.id,
+    });
+  }
+
+  async createWorldObjectInstance(body: CreateWorldObjectInstance) {
+    const payload = await this.authService.getPayload(body.access_token);
+    return await this.worldObjectsInstanceDocument.create({
+      userId: payload.sub,
+      worldObjectId: body.worldObjectId,
+      position: {
+        x: body.x,
+        y: body.y,
+      },
+      inventory: {
+        width: body.inventoryWidth,
+        height: body.inventoryHeigh,
+        slots: createInventory(body.inventoryWidth, body.inventoryHeigh),
+      },
     });
   }
 }

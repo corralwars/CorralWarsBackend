@@ -849,10 +849,50 @@ position
 inventory
 ```
 
-### Flujo de búsqueda de `WorldObjectInstance` por usuario
+## Estructura de datos
 
-La búsqueda sigue una separación clara entre el controlador, la lógica del
-servicio, la validación del token y la consulta a MongoDB.
+`WorldObject` es la definición del objeto disponible en el mundo:
+
+```text
+WorldObject
+├── itemId
+├── position
+├── movible
+└── recipes[]
+```
+
+`WorldObjectInstance` guarda la copia asociada a un usuario:
+
+```text
+WorldObjectInstance
+├── userId
+├── worldObjectId
+├── position
+└── inventory
+    ├── width
+    ├── height
+    └── slots[]
+        ├── itemId
+        └── quantity
+```
+
+Al crear una instancia, el servicio deriva `userId` del `access_token` y crea
+los slots del inventario con `itemId: null` y `quantity: 0`. La cantidad de
+slots se calcula como `inventoryWidth × inventoryHeigh`.
+
+## Endpoints
+
+El controlador utiliza el prefijo `/world-objects`.
+
+### Obtener las instancias del usuario
+
+```http
+GET /world-objects/worldObjectInstanceByUser/:token
+```
+
+El servicio verifica el token mediante `AuthService.getPayload`, toma el
+identificador del usuario (`payload.sub`) y busca sus instancias por `userId`.
+El token se recibe en la ruta.
 
 ```mermaid
 sequenceDiagram
@@ -864,18 +904,119 @@ sequenceDiagram
 
     G->>C: GET /world-objects/worldObjectInstanceByUser/:token
     C->>S: userWorldObjectsByUser(token)
-
-    S->>A: Verificar token
-    A-->>S: Payload con userId
-
-    S->>DB: Buscar WorldObjectInstance por userId
+    S->>A: getPayload(token)
+    A-->>S: Payload con sub
+    S->>DB: find({ userId: payload.sub })
     DB-->>S: WorldObjectInstances
-
     S-->>C: WorldObjectInstances
     C-->>G: JSON con instancias
 ```
 
-Conceptualmente, el flujo se divide en tres etapas:
+### Obtener las definiciones
+
+```http
+GET /world-objects/worldObjects
+```
+
+Devuelve las definiciones de `WorldObject` almacenadas en MongoDB.
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as WorldObjectsController
+    participant S as WorldObjectsService
+    participant DB as MongoDB
+
+    G->>C: GET /world-objects/worldObjects
+    C->>S: getWorldObjects()
+    S->>DB: find() WorldObjects
+    DB-->>S: WorldObjects
+    S-->>C: WorldObjects
+    C-->>G: JSON con definiciones
+```
+
+### Crear una instancia
+
+```http
+POST /world-objects/createWorldObjectInstance
+Content-Type: application/json
+```
+
+El cuerpo esperado por el DTO es:
+
+```json
+{
+  "access_token": "<access_token>",
+  "worldObjectId": "<world_object_id>",
+  "x": 10,
+  "y": 20,
+  "inventoryWidth": 7,
+  "inventoryHeigh": 5
+}
+```
+
+El servicio contiene la lógica para verificar el token y crear la instancia con
+su posición e inventario inicial. Sin embargo, actualmente el controlador llama
+recursivamente a su propio método en lugar de delegar en el servicio. Por ello,
+esta ruta no alcanza esa lógica de creación y debe corregirse antes de usarse.
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as WorldObjectsController
+    participant S as WorldObjectsService
+
+    G->>C: POST /world-objects/createWorldObjectInstance (body)
+    loop Llamadas recursivas sin condición de salida
+        C->>C: createWorldObjectInstance(body)
+    end
+    Note over C,S: El servicio no es invocado; la recursión termina en error
+```
+
+### Eliminar una instancia
+
+```http
+PUT /world-objects/deleteWorldObjectInstance
+Content-Type: application/json
+```
+
+El cuerpo esperado es:
+
+```json
+{
+  "id": "<world_object_instance_id>"
+}
+```
+
+La operación elimina el documento por `_id`. Actualmente la consulta no
+comprueba que la instancia pertenezca al usuario autenticado.
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as WorldObjectsController
+    participant S as WorldObjectsService
+    participant DB as MongoDB
+
+    G->>C: PUT /world-objects/deleteWorldObjectInstance (id)
+    C->>S: deleteWorldObjectsInstance(body)
+    S->>DB: deleteOne({ _id: body.id })
+    DB-->>S: Resultado de eliminación
+    S-->>C: Resultado de eliminación
+    C-->>G: JSON con resultado
+```
+
+## Alcance actual
+
+- Existe en el servicio una consulta de definición por ID, pero no está expuesta
+  mediante una ruta del controlador.
+- Las operaciones disponibles no constituyen un CRUD completo: no hay rutas
+  para actualizar objetos o instancias ni para eliminar definiciones.
+- Los DTOs declaran restricciones con `class-validator`; `main.ts` no configura
+  un `ValidationPipe` global, por lo que esas restricciones no se aplican
+  automáticamente a las solicitudes en la configuración actual.
+
+La consulta de instancias por usuario se puede resumir así:
 
 ```mermaid
 flowchart LR

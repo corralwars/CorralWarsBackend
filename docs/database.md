@@ -1112,16 +1112,146 @@ CombatEntity
 └── sceneId
 ```
 
-mientras que la progresión específica de cada jugador utiliza:
+=======
+
+# Diagrama general
 
 ```text
-CombatEntityInstance
-├── userId
-├── combatEntityId
-├── CombatEntityInstanceStats
-├── statPoints
-├── experience
-└── level
+MongoDB
+│
+├── users
+│   │
+│   ├── username
+│   ├── password
+│   ├── refresh_token
+│   ├── coins
+│   ├── position
+│   │   ├── x
+│   │   └── y
+│   │
+│   ├── inventory
+│   │   ├── width
+│   │   ├── height
+│   │   └── slots[]
+│   │       ├── itemId
+│   │       └── quantity
+│   │
+│   ├── defatedNeighbors[]
+│   ├── activatedPetId
+│   └── activatedSkin
+│   └── defatedNeighbors[]
+│
+├── items
+│   │
+│   ├── name
+│   ├── type
+│   └── effects[]
+│       ├── stat
+│       ├── operation
+│       └── value
+│       └── Effect
+│
+├── recipes
+│   │
+│   ├── inputs[]
+│   │   ├── itemId
+│   │   ├── slot
+@@ -555,191 +1112,221 @@ MongoDB
+│       ├── itemId
+│       └── quantity
+│
+├── neighboor
+│   │
+├── neighbors
+│   ├── name
+│   ├── level
+│   ├── combatEntityId
+│   ├── combatScene
+│   └── combatEntityAppearsAsPetInNeighborhood
+│
+├── worldObjects
+│   │
+│   ├── itemId
+│   ├── position
+│   │   ├── x
+│   │   └── y
+│   ├── movible
+│   └── recipes[]
+│   └── combatEntityId
+│
+├── combatEntity
+│   │
+├── combatentities
+│   ├── name
+│   ├── stats
+│   └── specialAttacks
+│       │
+│   ├── xpMultiplier
+│   ├── sceneId
+│   ├── baseStats
+│   │   ├── health
+│   │   ├── attack
+│   │   ├── defense
+│   │   ├── speed
+│   │   ├── criticalChance
+│   │   └── criticalDamage
+│   │
+│   └── specialAttacks[]
+│       ├── name
+│       ├── effects[]
+│       │   ├── stat
+│       │   ├── operation
+│       │   └── value
+│       └── specialAttackStats
+│           ├── velocityMultiply
+│           └── attackMultiply
+│       ├── damage
+│       ├── cooldown
+│       ├── range
+│       ├── scalingStat
+│       ├── scalingValue
+│       ├── unlockLevel
+│       └── effects[]
+│           └── Effect
+│
+├── combatEntity
+│   │
+├── combatentityinstances
+│   ├── userId
+│   ├── combatEntityId
+│   └── combatEntityStats
+│       ├── health
+│       ├── attack
+│       ├── defense
+│       ├── velocity
+│       └── stamina
+│   ├── level
+│   ├── experience
+│   ├── statPoints
+│   └── stats
+│
+└── worldObjectsInstances
+    │
+├── worldobjects
+│   ├── itemId
+│   ├── movible
+│   └── recipes
+│
+└── worldobjectsinstances
+    ├── userId
+    ├── worldObjectId
+    ├── position
+    │   ├── x
+    │   └── y
+    │
+    └── inventory
+        ├── width
+        ├── height
+        └── slots[]
+            ├── itemId
+            └── quantity
 ```
 
-Esta separación permite mantener las características generales de una entidad independientes del progreso individual de cada jugador.
+Esto permite mantener separada la información reutilizable del juego de la información específica y persistente de cada jugador.
+
+> > > > > > > cb973ec46015d781babce5b3aa3bb575518781cf

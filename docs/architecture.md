@@ -305,7 +305,7 @@ Esto permite reutilizar el concepto de efecto en otros módulos.
 
 `RecipesModule` administra las recetas de fabricación.
 
-Una receta define los Items necesarios y el resultado obtenido.
+Una receta define los items necesarios y el resultado obtenido.
 
 ```text
 Recipe
@@ -314,12 +314,12 @@ Recipe
 │   ├── slot
 │   └── quantity
 │
-└── output
+└── outPut
     ├── itemId
     └── quantity
 ```
 
-Las recetas utilizan referencias hacia `Item` mediante sus identificadores.
+Las recetas utilizan referencias hacia `Item` mediante sus identificadores. El nombre del campo en el schema real es `outPut` con `P` mayúscula, tal como aparece en `src/recipes/schemas/recipe.schema.ts`.
 
 ---
 
@@ -432,51 +432,66 @@ CombatEntity
 CombatEntityInstance
 ```
 
+La implementación real de los schemas refleja esta separación mediante:
+
+- `src/combat-entities/schemas/combatEntity.schema.ts`
+- `src/combat-entities/schemas/combatEntityInstance.schema.ts`
+- `src/combat-entities/schemas/stat.schema.ts`
+
 ---
 
 # CombatEntity
 
-`CombatEntity` representa una **definición estática** de una entidad combatible.
+`CombatEntity` representa una definición reutilizable de una entidad combatible.
 
-Una entidad puede representar:
-
-```text
-Mascota
-Vecino
-Jefe
-Otra entidad combatible
-```
-
-Por lo tanto, `CombatEntity` no equivale directamente a `Pet`.
-
-Una definición puede contener:
+La estructura actual del schema es:
 
 ```text
 CombatEntity
 ├── name
-├── xpMultiplier
-├── sceneId
-├── baseStats
+├── stats
+│   ├── health
+│   ├── attack
+│   ├── defense
+│   ├── velocity
+│   ├── stamina
+│   └── specialChance
 └── specialAttacks[]
+    ├── name
+    ├── effects[]
+    │   ├── stat
+    │   ├── operation
+    │   └── value
+    └── specialAttackStats
+        ├── velocityMultiply
+        └── attackMultiply
 ```
+
+Esta versión no incluye `sceneId`, `xpMultiplier`, `baseStats` ni campos como `damage`, `cooldown` o `range`, porque esos atributos no existen en el código actual.
 
 ---
 
 # CombatEntityInstance
 
-`CombatEntityInstance` representa la versión de una `CombatEntity` asociada al progreso de un usuario.
+`CombatEntityInstance` representa la versión asociada al progreso de un usuario para una entidad combatible concreta.
 
 ```text
 CombatEntityInstance
 ├── userId
 ├── combatEntityId
-├── level
-├── experience
+├── combatEntityStats
+│   ├── health
+│   ├── attack
+│   ├── defense
+│   ├── velocity
+│   └── stamina
 ├── statPoints
-└── stats
+├── experience
+├── level
+└── timestamps
 ```
 
-La relación es:
+La relación del sistema es:
 
 ```text
 User
@@ -489,110 +504,73 @@ CombatEntityInstance
 CombatEntity
 ```
 
-Esto permite que diferentes usuarios tengan diferentes progresiones para la misma entidad.
-
-Por ejemplo:
-
-```text
-CombatEntity: Griffin
-
-Usuario A
-└── Griffin Instance
-    ├── level: 10
-    └── stats: ...
-
-Usuario B
-└── Griffin Instance
-    ├── level: 5
-    └── stats: ...
-```
-
-La definición global permanece igual.
+Esto permite que distintos usuarios tengan progresiones diferentes para la misma entidad base sin duplicar la definición global de la entidad.
 
 ---
 
 # Estadísticas de combate
 
-Las estadísticas base pertenecen a `CombatEntity`.
+Las estadísticas base pertenecen a `CombatEntity` y se almacenan en el subdocumento `stats`.
 
-Actualmente se contemplan:
+Actualmente se utilizan:
 
 ```text
 health
 attack
 defense
-speed
-criticalChance
-criticalDamage
+velocity
+stamina
+specialChance
 ```
 
-La definición establece los valores base:
-
-```text
-CombatEntity
-└── baseStats
-```
-
-Mientras la instancia del usuario almacena la progresión:
+La instancia del usuario guarda una copia propia de las estadísticas combatientes en `combatEntityStats`, con sus valores actuales para el progreso del jugador:
 
 ```text
 CombatEntityInstance
-└── stats
+└── combatEntityStats
 ```
 
 Conceptualmente:
 
 ```text
-Estadísticas finales
-        │
-        ├── Valores base
-        │       ↓
-        │   CombatEntity
-        │
-        └── Progresión
-                ↓
-        CombatEntityInstance
+Definición base
+    ↓
+CombatEntity.stats
+    ↓
+Instancia del jugador
+    ↓
+CombatEntityInstance.combatEntityStats
 ```
 
 ---
 
 # Special Attacks
 
-Las entidades de combate pueden tener ataques especiales.
+Las entidades de combate pueden tener ataques especiales registrados en `specialAttacks`.
 
-Conceptualmente:
+La estructura real del schema es:
 
 ```text
 CombatEntity
 └── specialAttacks[]
     ├── name
-    ├── damage
-    ├── cooldown
-    ├── range
-    ├── scalingStat
-    ├── scalingValue
-    ├── unlockLevel
-    └── effects[]
+    ├── effects[]
+    │   ├── stat
+    │   ├── operation
+    │   └── value
+    └── specialAttackStats
+        ├── velocityMultiply
+        └── attackMultiply
 ```
 
-Los ataques pueden escalar con una estadística de la entidad.
-
-Por ejemplo:
-
-```text
-Daño =
-baseDamage +
-(attack × scalingValue)
-```
-
-También pueden existir multiplicadores específicos que permitan modificar cómo una entidad utiliza determinado ataque.
+Los ataques especiales no incluyen `damage`, `cooldown`, `range`, `scalingStat`, `scalingValue` ni `unlockLevel` en la implementación actual. Los modificadores concretos que existen son los multiplicadores de velocidad y ataque dentro de `specialAttackStats`.
 
 Los ataques pueden contener efectos:
 
 ```text
 SpecialAttack
 └── effects[]
-        └── Effect
+    └── Effect
 ```
 
 ---
@@ -767,24 +745,9 @@ No es necesario consultar MongoDB para conocerla.
 
 # Carga de una CombatEntity en Godot
 
-El flujo entre backend y cliente puede utilizar un identificador lógico de escena.
+La implementación actual del backend no expone un campo `sceneId` dentro de `CombatEntity`. La resolución visual o de escena del personaje queda como una responsabilidad del cliente si se decide mapearla por nombre o por ID interno.
 
-Por ejemplo:
-
-```text
-CombatEntity
-└── sceneId = "griffin"
-```
-
-Godot mantiene la correspondencia:
-
-```text
-"griffin"
-    ↓
-res://entities/combat/griffin.tscn
-```
-
-El flujo completo es:
+Un flujo posible, sin depender de un campo persistido en MongoDB, es:
 
 ```text
 Godot
@@ -800,15 +763,15 @@ Neighbor
   ▼
 CombatEntity
   │
-  │ sceneId
+  │ name / stats / specialAttacks
   ▼
 Godot
   │
   ▼
-Carga de la escena
+Resuelve el recurso visual y ejecuta la lógica del combate
 ```
 
-Esto mantiene desacoplada la base de datos de la estructura interna de archivos de Godot.
+Esto mantiene la base de datos enfocada en datos del juego y deja la representación gráfica en el cliente.
 
 ---
 
@@ -1088,14 +1051,14 @@ Neighbor
    ▼
 CombatEntity
    │
-   ├── baseStats
+   ├── stats
    ├── specialAttacks
-   └── sceneId
+   └── name
    │
    ▼
 Godot
    │
-   ├── instancia escena
+   ├── resuelve recursos visuales
    ├── ejecuta IA
    ├── ejecuta ataques
    ├── controla animaciones
@@ -1112,13 +1075,14 @@ CombatEntityInstance
    │
    ├── level
    ├── experience
-   └── stats
+   ├── statPoints
+   └── combatEntityStats
    │
    ▼
 Godot
 ```
 
-De esta forma, MongoDB proporciona la definición y progresión necesaria, mientras Godot ejecuta el combate.
+De esta forma, MongoDB proporciona la definición y la progresión necesaria, mientras Godot ejecuta la lógica de combate y la presentación del encuentro.
 
 ---
 

@@ -1118,9 +1118,7 @@ CombatEntity
 
 ```text
 MongoDB
-│
 ├── users
-│   │
 │   ├── username
 │   ├── password
 │   ├── refresh_token
@@ -1128,74 +1126,65 @@ MongoDB
 │   ├── position
 │   │   ├── x
 │   │   └── y
-│   │
 │   ├── inventory
 │   │   ├── width
 │   │   ├── height
 │   │   └── slots[]
 │   │       ├── itemId
 │   │       └── quantity
-│   │
 │   ├── defatedNeighbors[]
 │   ├── activatedPetId
-│   └── activatedSkin
-│   └── defatedNeighbors[]
+│   ├── activatedSkin
+│   └── timestamps (createdAt, updatedAt)
 │
 ├── items
-│   │
 │   ├── name
 │   ├── type
 │   └── effects[]
 │       ├── stat
 │       ├── operation
 │       └── value
-│       └── Effect
 │
 ├── recipes
-│   │
 │   ├── inputs[]
 │   │   ├── itemId
 │   │   ├── slot
-@@ -555,191 +1112,221 @@ MongoDB
+│   │   └── quantity
+│   └── outPut
 │       ├── itemId
 │       └── quantity
 │
-├── neighboor
-│   │
-├── neighbors
+├── neighboors
 │   ├── name
 │   ├── level
 │   ├── combatEntityId
 │   ├── combatScene
 │   └── combatEntityAppearsAsPetInNeighborhood
 │
-├── worldObjects
-│   │
+├── worldobjects
 │   ├── itemId
 │   ├── position
 │   │   ├── x
 │   │   └── y
 │   ├── movible
 │   └── recipes[]
-│   └── combatEntityId
+│       ├── inputs[]
+│       │   ├── itemId
+│       │   ├── slot
+│       │   └── quantity
+│       └── outPut
+│           ├── itemId
+│           └── quantity
 │
-├── combatEntity
-│   │
 ├── combatentities
 │   ├── name
 │   ├── stats
-│   └── specialAttacks
-│       │
-│   ├── xpMultiplier
-│   ├── sceneId
-│   ├── baseStats
 │   │   ├── health
 │   │   ├── attack
 │   │   ├── defense
-│   │   ├── speed
-│   │   ├── criticalChance
-│   │   └── criticalDamage
-│   │
+│   │   ├── velocity
+│   │   ├── stamina
+│   │   └── specialChance
 │   └── specialAttacks[]
 │       ├── name
 │       ├── effects[]
@@ -1205,37 +1194,20 @@ MongoDB
 │       └── specialAttackStats
 │           ├── velocityMultiply
 │           └── attackMultiply
-│       ├── damage
-│       ├── cooldown
-│       ├── range
-│       ├── scalingStat
-│       ├── scalingValue
-│       ├── unlockLevel
-│       └── effects[]
-│           └── Effect
 │
-├── combatEntity
-│   │
 ├── combatentityinstances
 │   ├── userId
 │   ├── combatEntityId
-│   └── combatEntityStats
-│       ├── health
-│       ├── attack
-│       ├── defense
-│       ├── velocity
-│       └── stamina
-│   ├── level
-│   ├── experience
+│   ├── combatEntityStats
+│   │   ├── health
+│   │   ├── attack
+│   │   ├── defense
+│   │   ├── velocity
+│   │   └── stamina
 │   ├── statPoints
-│   └── stats
-│
-└── worldObjectsInstances
-    │
-├── worldobjects
-│   ├── itemId
-│   ├── movible
-│   └── recipes
+│   ├── experience
+│   ├── level
+│   └── timestamps (createdAt, updatedAt)
 │
 └── worldobjectsinstances
     ├── userId
@@ -1243,7 +1215,6 @@ MongoDB
     ├── position
     │   ├── x
     │   └── y
-    │
     └── inventory
         ├── width
         ├── height
@@ -1252,6 +1223,6 @@ MongoDB
             └── quantity
 ```
 
-Esto permite mantener separada la información reutilizable del juego de la información específica y persistente de cada jugador.
+Este diagrama refleja la estructura real de los schemas actuales en `src/*`: las colecciones principales y los subdocumentos que definen sus propiedades, sin incluir campos heredados por Mongoose ni nombres obsoletos del documento anterior.
 
 > > > > > > > cb973ec46015d781babce5b3aa3bb575518781cf

@@ -206,13 +206,14 @@ Swagger permite consultar los endpoints disponibles y realizar pruebas directame
 
 Actualmente existen endpoints relacionados principalmente con autenticación y usuarios.
 
-| Método | Endpoint                  | Descripción           |
-| ------ | ------------------------- | --------------------- |
-| `GET`  | `/`                       | Endpoint de prueba.   |
-| `POST` | `/auth/register`          | Registrar una cuenta. |
-| `POST` | `/auth/login`             | Iniciar sesión.       |
-| `POST` | `/auth/Logout`            | Cerrar sesión.        |
-| `GET`  | `/user/findOne/:username` | Buscar un usuario.    |
+| Método | Endpoint                  | Descripción                                    |
+| ------ | ------------------------- | ---------------------------------------------- |
+| `GET`  | `/`                       | Endpoint de prueba.                            |
+| `POST` | `/auth/register`          | Registrar una cuenta e iniciar sesión.         |
+| `POST` | `/auth/login`             | Iniciar sesión y generar tokens.               |
+| `POST` | `/auth/Logout`            | Cerrar sesión e invalidar el Refresh Token.    |
+| `POST` | `/auth/refreshToken`      | Renovar la sesión utilizando un Refresh Token. |
+| `GET`  | `/user/findOne/:username` | Buscar un usuario.                             |
 
 La API seguirá creciendo conforme se implementen los diferentes módulos del videojuego.
 
@@ -232,7 +233,18 @@ Actualmente proporciona:
 POST /auth/register
 POST /auth/login
 POST /auth/Logout
+POST /auth/refreshToken
 ```
+
+Los endpoints de `register` y `login` generan un Access Token y un Refresh
+Token. El Refresh Token se almacena únicamente como hash en MongoDB.
+
+El endpoint `Logout` utiliza el Refresh Token para identificar al usuario y
+elimina el Refresh Token almacenado, impidiendo que pueda utilizarse
+nuevamente para renovar la sesión.
+
+El endpoint `refreshToken` permite solicitar una renovación de la sesión
+utilizando el Refresh Token.
 
 ---
 
@@ -281,6 +293,9 @@ La contraseña se almacena mediante un hash generado con `bcrypt`.
 
 ### Flujo de registro
 
+El registro no solamente crea la cuenta. Después de crearla, el servidor
+genera inmediatamente los dos tokens y almacena el hash del Refresh Token.
+
 ```mermaid
 sequenceDiagram
     participant G as Godot
@@ -290,13 +305,32 @@ sequenceDiagram
     participant DB as MongoDB
 
     G->>C: POST /auth/register
-    C->>S: register()
-    S->>U: createUser()
-    U->>DB: Crear usuario
-    DB-->>U: Usuario creado
-    U-->>S: Usuario
-    S-->>C: Access + Refresh Token
-    C-->>G: Tokens
+    C->>S: register(body)
+    S->>U: findByUsername(username)
+    U->>DB: Buscar usuario
+    DB-->>U: Usuario / null
+
+    alt Usuario existente
+        U-->>S: Usuario encontrado
+        S-->>C: 401 Unauthorized
+        C-->>G: Error
+    else Usuario disponible
+        S->>S: Validar confirm_password
+        S->>U: createUser(body)
+        U->>U: bcrypt.hash(password)
+        U->>DB: Crear usuario
+        DB-->>U: Usuario creado
+        U-->>S: Usuario
+
+        S->>S: Generar Access Token
+        S->>S: Generar Refresh Token
+        S->>U: updateRefresTokenLogin()
+        U->>U: bcrypt.hash(refresh_token)
+        U->>DB: Guardar hash del Refresh Token
+
+        S-->>C: Access + Refresh Token
+        C-->>G: Tokens
+    end
 ```
 
 ---
@@ -329,24 +363,9 @@ Autentica un usuario existente.
 
 ### Flujo
 
-```text
-Godot
-   │
-   │ username + password
-   ▼
-AuthController
-   │
-   ▼
-AuthService
-   │
-   ▼
-UserService
-   │
-   ▼
-MongoDB
-```
-
-También puede representarse mediante:
+El login genera un nuevo Refresh Token y reemplaza el hash almacenado para
+ese usuario. De esta forma, el Refresh Token anterior deja de coincidir con
+el valor almacenado.
 
 ```mermaid
 sequenceDiagram
@@ -357,28 +376,40 @@ sequenceDiagram
     participant DB as MongoDB
 
     G->>C: POST /auth/login
-    C->>S: login()
-    S->>U: findByUsername()
+    C->>S: login(body)
+    S->>U: findByUsername(username)
     U->>DB: Buscar usuario
     DB-->>U: Usuario
     U-->>S: Usuario
-    S->>S: bcrypt.compare()
-    S->>S: Generar JWT
-    S->>U: updateRefreshToken()
-    U->>DB: Guardar hash
-    S-->>C: Tokens
-    C-->>G: Access + Refresh Token
+
+    S->>S: bcrypt.compare(password, hash)
+
+    alt Credenciales incorrectas
+        S-->>C: 401 Unauthorized
+        C-->>G: Error
+    else Credenciales correctas
+        S->>S: Generar Access Token (15m)
+        S->>S: Generar Refresh Token (7d)
+        S->>U: updateRefresTokenLogin()
+        U->>U: bcrypt.hash(refresh_token)
+        U->>DB: Reemplazar hash del Refresh Token
+        DB-->>U: Confirmación
+        U-->>S: Confirmación
+        S-->>C: Access + Refresh Token
+        C-->>G: Tokens
+    end
 ```
 
 El servidor:
 
-1. Busca el usuario.
+1. Busca el usuario mediante `findByUsername()`.
 2. Comprueba que exista.
-3. Compara la contraseña con el hash.
-4. Genera el Access Token.
-5. Genera el Refresh Token.
-6. Almacena el hash del Refresh Token.
-7. Devuelve los tokens.
+3. Compara la contraseña con el hash mediante `bcrypt.compare()`.
+4. Genera un nuevo Access Token con duración de 15 minutos.
+5. Genera un nuevo Refresh Token con duración de 7 días.
+6. Genera un hash del Refresh Token mediante `bcrypt.hash()`.
+7. Reemplaza el hash almacenado en MongoDB.
+8. Devuelve ambos tokens.
 
 La contraseña se verifica mediante:
 
@@ -431,6 +462,98 @@ sequenceDiagram
     S-->>C: Logout exitoso
     C-->>G: Respuesta
 ```
+
+---
+
+# Refresh Token Endpoint
+
+```http
+POST /auth/refreshToken
+```
+
+Este endpoint permite renovar la sesión utilizando un Refresh Token.
+
+### Request
+
+```json
+{
+  "token": "eyJ..."
+}
+```
+
+El servidor recibe el token mediante `RefreshTokenDto` y lo utiliza para
+identificar al usuario asociado.
+
+### Flujo esperado
+
+```mermaid
+sequenceDiagram
+    participant G as Godot
+    participant C as AuthController
+    participant S as AuthService
+    participant U as UserService
+    participant DB as MongoDB
+
+    G->>C: POST /auth/refreshToken
+    C->>S: refreshToken(token)
+    S->>S: Verificar Refresh Token
+    S->>U: updateRefreshToken(payload.sub, token)
+    U->>DB: Buscar usuario
+    DB-->>U: Usuario
+    U->>U: bcrypt.compare(token, refresh_token)
+
+    alt Token no coincide
+        U-->>S: Unauthorized
+        S-->>C: 401 Unauthorized
+        C-->>G: Error
+    else Token coincide
+        U->>U: bcrypt.hash(token)
+        U->>DB: Actualizar hash
+        DB-->>U: Confirmación
+        U-->>S: Resultado
+        S-->>C: Respuesta
+        C-->>G: Sesión renovada
+    end
+```
+
+### Flujo de renovación
+
+```text
+Access Token expira
+       │
+       ▼
+Godot conserva el Refresh Token
+       │
+       ▼
+POST /auth/refreshToken
+       │
+       ▼
+AuthService verifica el token
+       │
+       ▼
+UserService busca al usuario
+       │
+       ▼
+bcrypt.compare()
+       │
+       ├── No coincide → 401
+       │
+       └── Coincide
+              │
+              ▼
+       Actualizar hash
+              │
+              ▼
+       Renovar sesión
+```
+
+> **Nota de implementación:** el código actual de `AuthService.refreshToken()`
+> llama a `jwtService.verify(token)` sin especificar `JWT_REFRESH_SECRET`.
+> Como el Refresh Token fue firmado con una clave distinta a la del Access
+> Token, este método debería verificarlo explícitamente con
+> `secret: process.env.JWT_REFRESH_SECRET`. Además, si el objetivo es emitir
+> un nuevo Access Token, el método debe generarlo y devolverlo; actualmente
+> `updateRefreshToken()` solamente actualiza el hash almacenado.
 
 ---
 
@@ -726,25 +849,53 @@ position
 inventory
 ```
 
-### Flujo de busqueda de worldobjectinstance por usuario
+### Flujo de búsqueda de `WorldObjectInstance` por usuario
+
+La búsqueda sigue una separación clara entre el controlador, la lógica del
+servicio, la validación del token y la consulta a MongoDB.
 
 ```mermaid
 sequenceDiagram
+    participant G as Godot
+    participant C as WorldObjectsController
+    participant S as WorldObjectsService
+    participant A as AuthService
+    participant DB as MongoDB
 
-participant G as GODOT
-participant C as world-objects.controller
-participant S as world-bojects.service
-participant SA as auth.service
-participant M as Mongodb
+    G->>C: GET /world-objects/worldObjectInstanceByUser/:token
+    C->>S: userWorldObjectsByUser(token)
 
-G->>C:GET 'world-objects/worldObjectInstanceByUser/tokenDelUsuario'
-C->>S:userWorldObjectsByUser(token)
-S->>SA:verificar validez del token
-SA->>S:retorno del token
-S->>M:busqueda en la base de datos
-M->>S:Envio de datos
-S->>C:Envio de datos
-C->>G:Envio de datos
+    S->>A: Verificar token
+    A-->>S: Payload con userId
+
+    S->>DB: Buscar WorldObjectInstance por userId
+    DB-->>S: WorldObjectInstances
+
+    S-->>C: WorldObjectInstances
+    C-->>G: JSON con instancias
+```
+
+Conceptualmente, el flujo se divide en tres etapas:
+
+```mermaid
+flowchart LR
+    G[Godot] --> C[WorldObjectsController]
+    C --> S[WorldObjectsService]
+
+    subgraph Auth["Autenticación"]
+        S --> A[AuthService]
+        A --> P[Payload]
+    end
+
+    subgraph Persistence["Persistencia"]
+        P --> Q[Consulta por userId]
+        Q --> DB[(MongoDB)]
+    end
+
+    DB --> R[WorldObjectInstances]
+    R --> S
+    S --> C
+    C --> G
 ```
 
 ---
@@ -1336,6 +1487,7 @@ Actualmente la API cuenta con:
 - Registro de usuarios.
 - Login.
 - Logout.
+- Renovación de sesión mediante `/auth/refreshToken`.
 - Access Tokens.
 - Refresh Tokens.
 - Hashing de contraseñas con bcrypt.

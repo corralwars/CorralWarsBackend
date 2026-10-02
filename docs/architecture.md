@@ -87,8 +87,7 @@ src/
 │   ├── auth.controller.ts
 │   ├── auth.module.ts
 │   ├── auth.service.ts
-│   ├── dto/
-│   └── guards/
+│   └── dto/
 │
 ├── combat-entities/
 │   ├── combat-entities.controller.ts
@@ -186,7 +185,7 @@ Actualmente se encarga de:
 - Logout.
 - Generación de Access Tokens.
 - Generación de Refresh Tokens.
-- Validación de tokens.
+- Validación manual de tokens.
 - Invalidación del Refresh Token.
 
 La relación principal es:
@@ -207,10 +206,31 @@ AuthController
  MongoDB
 ```
 
-El módulo también contiene el guard utilizado para proteger rutas mediante Access Tokens:
+La autenticación no utiliza Guards de NestJS actualmente. La validación de
+los tokens se realiza directamente desde los services cuando una operación
+requiere comprobar la sesión.
+
+Esta decisión se debe a que CorralWars tiene a Godot como cliente principal
+y único consumidor previsto de la API. En lugar de añadir una capa de Guards
+para proteger las rutas, las operaciones que necesitan autenticación realizan
+la validación explícitamente dentro de la lógica de aplicación.
+
+Por ejemplo, un flujo autenticado puede seguir conceptualmente:
 
 ```text
-auth/guards/access_token_auth.guard.ts
+Controller
+    │
+    ▼
+Service
+    │
+    ├── Verificar Token
+    │
+    ├── Obtener payload
+    │
+    └── Ejecutar operación
+    │
+    ▼
+MongoDB
 ```
 
 ---
@@ -983,6 +1003,12 @@ Los schemas de `Common` participan como estructuras de los documentos cuando son
 
 # Flujo de autenticación
 
+La autenticación se realiza mediante JWT y la validación necesaria se hace
+manualmente desde la lógica de los services. No se utiliza un `AuthGuard`
+para interceptar las solicitudes.
+
+El login sigue este flujo:
+
 ```text
 Godot
    │
@@ -993,8 +1019,18 @@ AuthController
    ▼
 AuthService
    │
+   ├── Buscar usuario
+   │
+   ├── Verificar contraseña
+   │
+   ├── Generar Access Token
+   │
+   └── Generar Refresh Token
+   │
    ▼
 UserService
+   │
+   └── Guardar hash del Refresh Token
    │
    ▼
 MongoDB
@@ -1005,6 +1041,32 @@ AuthService
    ├── Access Token
    └── Refresh Token
 ```
+
+Para operaciones que necesitan validar una sesión, el service responsable
+realiza la comprobación del JWT antes de continuar:
+
+```text
+Godot
+   │
+   │ HTTP / JSON + Token
+   ▼
+Controller
+   │
+   ▼
+Service
+   │
+   ├── Verificar JWT
+   │
+   ├── Obtener payload
+   │
+   └── Validar condiciones de la operación
+   │
+   ▼
+MongoDB
+```
+
+Esto mantiene la autenticación como parte de la lógica de aplicación sin
+introducir una capa adicional de Guards.
 
 ---
 

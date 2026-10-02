@@ -4,12 +4,11 @@ import { LoginDto } from './dto/Login.dto';
 import { RegisterDto } from './dto/Register.dto';
 import { LogoutDto } from './dto/Logout.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-
+import { RefreshTokenDto } from './dto/RefreshToken';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
   @Post('login')
   @ApiOperation({
     summary: 'Iniciar Sesión',
@@ -19,10 +18,7 @@ export class AuthController {
     status: 200,
     description: 'Inicio de sesión hecho',
     schema: {
-      example: {
-        access_token: 'lo que sea',
-        refresh_token: 'lo que sea',
-      },
+      example: { access_token: 'lo que sea', refresh_token: 'lo que sea' },
     },
   })
   @ApiResponse({
@@ -32,7 +28,6 @@ export class AuthController {
   async login(@Body() body: LoginDto) {
     return await this.authService.login(body);
   }
-
   @Post('register')
   @ApiOperation({
     summary: 'Registrar cuenta',
@@ -41,10 +36,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'registro correcto',
-    example: {
-      access_token: 'lo que sea',
-      refresh_token: 'lo que sea',
-    },
+    example: { access_token: 'lo que sea', refresh_token: 'lo que sea' },
   })
   @ApiResponse({
     status: 401,
@@ -53,15 +45,11 @@ export class AuthController {
   async register(@Body() body: RegisterDto) {
     return await this.authService.register(body);
   }
-
   @ApiOperation({
     summary: 'Cerrar Sesión',
     description: 'Cerrar sesión en CorralWars',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'sesión cerrada',
-  })
+  @ApiResponse({ status: 200, description: 'sesión cerrada' })
   @ApiResponse({
     status: 401,
     description:
@@ -70,5 +58,8 @@ export class AuthController {
   @Post('Logout')
   async logout(@Body() body: LogoutDto) {
     return await this.authService.logout(body);
+  }
+  @Post('refreshToken') async refresToken(@Body() body: RefreshTokenDto) {
+    return this.authService.refreshToken(body.token);
   }
 }

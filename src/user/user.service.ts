@@ -6,6 +6,7 @@ import { CreateUserDto } from './dto/createUser.dto';
 import { createInventory } from '../common/schemas/inventory.schema';
 import * as bcrypt from 'bcrypt';
 import { RefreshTokenDto } from './dto/refreshToken.dto';
+import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class UserService {
@@ -48,7 +49,7 @@ export class UserService {
     }
   }
 
-  async updateRefresToken(body: RefreshTokenDto) {
+  async updateRefresTokenLogin(body: RefreshTokenDto) {
     try {
       const hash = await bcrypt.hash(body.refresh_token, 10);
 
@@ -61,6 +62,29 @@ export class UserService {
     } catch (error) {
       throw new Error(`${error}`);
     }
+  }
+
+  async updateRefreshToken(id: string, refresh_token: string) {
+    const user = await this.userModel.findById(id);
+
+    if (!user) {
+      throw new NotFoundError('usuario no encontrado en la base de datos');
+    }
+
+    if (await bcrypt.compare(refresh_token, user.refresh_token)) {
+      const hash = await bcrypt.hash(refresh_token, 10);
+
+      return await this.userModel.updateOne(
+        {
+          _id: user._id,
+        },
+        {
+          refresh_token: hash,
+        },
+      );
+    }
+
+    throw new UnauthorizedException('el refresh_token no coincide');
   }
 
   async deleteRefreshToken(id: string) {

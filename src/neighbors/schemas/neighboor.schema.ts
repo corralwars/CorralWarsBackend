@@ -8,7 +8,7 @@ export class Neighboor {
   @Prop({ required: true })
   name!: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   level!: number;
 
   @Prop({ required: true })

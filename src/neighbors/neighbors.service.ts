@@ -9,4 +9,12 @@ export class NeighborsService {
     @InjectModel(Neighboor.name)
     private readonly neighboorModel: Model<NeighborDocument>,
   ) {}
+
+  async findNeighboors() {
+    return await this.neighboorModel.find();
+  }
+
+  async findNeighboorById(id: string) {
+    return await this.neighboorModel.findById(id);
+  }
 }

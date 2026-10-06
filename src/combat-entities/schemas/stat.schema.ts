@@ -17,9 +17,10 @@ export class CombatEntityStats {
   @Prop({ required: true, min: 30 })
   stamina!: number;
 
-  @Prop({ required: true, type: Float32Array, min: 0.2 })
+  @Prop({ required: true, min: 0.2 })
   specialChance!: number;
 }
+
 export const CombatEntityStatsSchema =
   SchemaFactory.createForClass(CombatEntityStats);
 
@@ -31,9 +32,11 @@ export class SpecialAttackStats {
   @Prop({ required: true, min: 10 })
   attackMultiply!: number;
 }
+
 export const SpecialAttacksStatsSchema =
   SchemaFactory.createForClass(SpecialAttackStats);
 
+@Schema({ _id: false })
 export class CombatEntityInstanceStats {
   @Prop({ required: true, min: 0 })
   health!: number;
@@ -50,6 +53,7 @@ export class CombatEntityInstanceStats {
   @Prop({ required: true, min: 0 })
   stamina!: number;
 }
+
 export const CombatEntityInstanceStatsSchema = SchemaFactory.createForClass(
   CombatEntityInstanceStats,
 );

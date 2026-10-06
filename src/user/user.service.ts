@@ -23,6 +23,10 @@ export class UserService {
     }
   }
 
+  async validateUser(id: string) {
+    return await this.userModel.findById(id);
+  }
+
   async createUser(body: CreateUserDto) {
     try {
       const hash = await bcrypt.hash(body.password, 10);

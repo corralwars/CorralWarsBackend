@@ -5,6 +5,7 @@ import { RegisterDto } from './dto/Register.dto';
 import { UserService } from 'src/user/user.service';
 import { compare } from 'bcrypt';
 import { LogoutDto } from './dto/Logout.dto';
+import { NotFoundError } from 'rxjs';
 @Injectable()
 export class AuthService {
   constructor(
@@ -78,6 +79,10 @@ export class AuthService {
     const payload = this.jwtService.verify(jwt);
     if (!payload) {
       throw new UnauthorizedException('token no existente');
+    }
+    const verify = await this.userService.validateUser(payload.sub);
+    if (!verify) {
+      throw new NotFoundError('usuario no existente');
     }
     return payload;
   }

@@ -5,10 +5,11 @@ import {
   CombatEntityInstanceStatsSchema,
 } from './stat.schema';
 
-export type CombatEntityInstanceDocument = HydratedDocument<CombatEntity>;
+export type CombatEntityInstanceDocument =
+  HydratedDocument<CombatEntityInstance>;
 
 @Schema({ timestamps: true })
-export class CombatEntity {
+export class CombatEntityInstance {
   @Prop({ required: true })
   userId!: string;
 
@@ -18,7 +19,7 @@ export class CombatEntity {
   @Prop({ required: true, type: CombatEntityInstanceStatsSchema })
   combatEntityStats!: CombatEntityInstanceStats;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: 0, min: 0 })
   statPoints!: number;
 
   @Prop({ required: true, default: 0, min: 0 })
@@ -27,4 +28,5 @@ export class CombatEntity {
   @Prop({ required: true, default: 1, min: 1 })
   level!: number;
 }
-export const CombatEntitySchema = SchemaFactory.createForClass(CombatEntity);
+export const CombatEntityInstanceSchema =
+  SchemaFactory.createForClass(CombatEntityInstance);
